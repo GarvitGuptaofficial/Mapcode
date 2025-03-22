@@ -11,7 +11,7 @@ export class Model {
     this.showInitialState = false;
     this.showFinalResult = false;
     this.computationText = '';
-    this.history = []; // Array to store history of states
+    this.history = [];
     this.history.push(this.getState()); // Initialize with initial state
   }
 
@@ -101,6 +101,10 @@ export class Model {
         this.showInitialState = previousState.showInitialState;
         this.showFinalResult = previousState.showFinalResult;
         this.computationText = previousState.computationText;
+        // Restore config.base if applicable
+        if (this.config.name === 'exponentiation' || this.config.name === 'gcd') {
+          this.config.base = previousState.n;
+        }
 
         // Special handling for specific undo cases
         if (this.step === 1 && previousState.step === 2) {
@@ -111,7 +115,9 @@ export class Model {
         } else if (this.step === 3 && previousState.step === 3 && this.fNodes.length > previousState.fNodes.length) {
           // Undo from T: Remove the last F node
           this.fNodes.pop();
-          this.computationText = `Iteration ${this.fNodes.length}: F(${this.fNodes[this.fNodes.length - 1][0]},${this.fNodes[this.fNodes.length - 1][1]}) = (?)`;
+          this.computationText = this.fNodes.length > 0 
+            ? `Iteration ${this.fNodes.length}: F(${this.fNodes[this.fNodes.length - 1][0]},${this.fNodes[this.fNodes.length - 1][1]}) = (?)`
+            : 'Click T to begin state transitions';
           console.log('Undid T, removed last F node');
         } else if (this.step === 3.5 && previousState.step === 4) {
           // Undo from π: Reset final result and show ?
@@ -163,6 +169,7 @@ export class Model {
       showFinalResult: this.showFinalResult,
       computationText: this.computationText,
       algorithmName: this.config.name,
+      algorithm: this.config, // Include the full config object
     };
   }
 }

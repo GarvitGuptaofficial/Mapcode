@@ -11,17 +11,29 @@ export const Node = ({ label, onClick, className = '', highlight = false }) => (
   </div>
 );
 
-export const StateNode = ({ state }) => (
-  <div className="h-12 rounded-full border-2 border-gray-400 flex items-center justify-center px-2">
-    [{state[0]},{state[1]}]
-  </div>
-);
+export const StateNode = ({ state }) => {
+  const displayState = Array.isArray(state)
+    ? `[${state.join(',')}]`
+    : state?.toString() || '';
 
-export const StateRect = ({ state }) => (
-  <div className="h-10 px-2 border-2 border-gray-400 rounded flex items-center justify-center bg-white">
-    [{state[0]},{state[1]}]
-  </div>
-);
+  return (
+    <div className="h-12 rounded-full border-2 border-gray-400 flex items-center justify-center px-2">
+      {displayState}
+    </div>
+  );
+};
+
+export const StateRect = (({ state }) => {
+  const displayState = Array.isArray(state)
+    ? `[${state.join(',')}]`
+    : state?.toString() || '';
+
+  return (
+    <div className="h-10 px-2 border-2 border-gray-400 rounded flex items-center justify-center bg-white">
+      {displayState}
+    </div>
+  );
+})
 
 export const Arrow = ({ vertical = false, direction = 'right' }) => (
   <div

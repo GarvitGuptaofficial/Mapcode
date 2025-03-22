@@ -6,9 +6,10 @@ export class Controller {
     this.model = new Model(config);
   }
 
-  handleInputChange(nValue, mValue = '') {
-    console.log('Handling input change:', nValue, mValue);
-    this.model.setInput(nValue, mValue);
+  handleInputChange(...inputs) {
+    console.log('Handling input change:', inputs);
+    // Pass the first two inputs (n and m) to setInput, ignore extras for now
+    this.model.setInput(inputs[0] || '', inputs[1] || '');
   }
 
   handleFClick() {

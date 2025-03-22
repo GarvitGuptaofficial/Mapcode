@@ -1,51 +1,75 @@
 import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
 import { Controller } from './controller/Controller';
 import { Node, StateNode, StateRect, Arrow } from './view/Node';
-import { SidePanel } from './view/SidePanel';
-import { algorithms } from './algorithms';
 
-const App = () => {
-  const [controller, setController] = useState(new Controller(algorithms.factorial));
-  const [selectedAlgorithm, setSelectedAlgorithm] = useState(algorithms.factorial.name);
+const App = ({ algorithm }) => {
+  const [controller] = useState(() => new Controller(algorithm));
   const [showDialog, setShowDialog] = useState(null);
-  const [showSidePanel, setShowSidePanel] = useState(true);
-  const [renderTrigger, setRenderTrigger] = useState(0); // To force re-render
-  const [inputN, setInputN] = useState('');
-  const [inputM, setInputM] = useState('');
+  const [renderTrigger, setRenderTrigger] = useState(0);
+  const [inputs, setInputs] = useState(Array(algorithm.numInputs).fill(''));
+  const [endOfAlgo, setEndOfAlgo] = useState(false);
+  const [history, setHistory] = useState([]); // Store multiple previous states for undo
+  const [futureState, setFutureState] = useState(null); // Store one future state for redo
 
   const state = controller.getState();
 
-  // Force re-render when state changes
+  useEffect(() => {
+    controller.changeAlgorithm(algorithm);
+    setInputs(Array(algorithm.numInputs).fill(''));
+    setEndOfAlgo(false);
+    setHistory([]); // Clear history on algorithm change
+    setFutureState(null);
+    setRenderTrigger((prev) => prev + 1);
+  }, [algorithm, controller]);
+
   useEffect(() => {
     setRenderTrigger((prev) => prev + 1);
     console.log('State updated:', state);
   }, [state.step, state.n, state.m, state.fNodes, state.result, state.showT, state.showInitialState, state.showFinalResult, state.computationText]);
 
-  const handleSelectAlgorithm = (key) => {
-    console.log('Selecting algorithm:', key);
-    const currentN = state.n;
-    const currentM = state.m;
-    controller.changeAlgorithm(algorithms[key]);
-    setSelectedAlgorithm(algorithms[key].name);
-    setShowDialog(null);
-    controller.model.setInput(currentN || '', currentM || '');
-    setInputN(currentN || '');
-    setInputM(currentM || '');
-    setRenderTrigger((prev) => prev + 1);
-  };
-
-  const toggleSidePanel = () => {
-    console.log('Toggling side panel:', !showSidePanel);
-    setShowSidePanel(!showSidePanel);
-  };
-
   const handleUndo = () => {
-    console.log('Undo button clicked, Current History length:', controller.model.history.length);
-    controller.undo();
-    setInputN(state.n.toString());
-    setInputM(state.m.toString());
-    setRenderTrigger((prev) => prev + 1); // Force re-render
+    if (history.length === 0) return;
+
+    console.log('Undo button clicked, history length:', history.length);
+    // Store the current state as the future state for redo
+    setFutureState({
+      state: { ...state },
+      inputs: [...inputs],
+      endOfAlgo,
+    });
+
+    // Pop the last state from history and restore it
+    const newHistory = [...history];
+    const previousState = newHistory.pop();
+    Object.assign(controller.model, previousState.state); // Update the model's state
+    setInputs(previousState.inputs);
+    setEndOfAlgo(previousState.endOfAlgo);
+    setHistory(newHistory); // Update history
+    setRenderTrigger((prev) => prev + 1);
+    console.log('State after undo:', controller.getState());
+  };
+
+  const handleRedo = () => {
+    if (!futureState) return;
+
+    console.log('Redo button clicked, future state:', futureState);
+    // Add the current state to history for undo
+    setHistory((prev) => [
+      ...prev,
+      {
+        state: { ...state },
+        inputs: [...inputs],
+        endOfAlgo,
+      },
+    ]);
+
+    // Restore the future state
+    Object.assign(controller.model, futureState.state); // Update the model's state
+    setInputs(futureState.inputs);
+    setEndOfAlgo(futureState.endOfAlgo);
+    setFutureState(null); // Clear future state (one-step limit for redo)
+    setRenderTrigger((prev) => prev + 1);
+    console.log('State after redo:', controller.getState());
   };
 
   const getHighlightButton = () => {
@@ -58,70 +82,155 @@ const App = () => {
 
   const highlightButton = getHighlightButton();
 
-  const isTwoInputAlgorithm = state.algorithmName === 'exponentiation' || state.algorithmName === 'gcd';
+  const handleInputChange = (index, value) => {
+    setHistory((prev) => [
+      ...prev,
+      {
+        state: { ...state },
+        inputs: [...inputs],
+        endOfAlgo,
+      },
+    ]);
+    setFutureState(null);
 
-  const displayInput = isTwoInputAlgorithm ? `${state.n},${state.m}` : state.n;
+    const newInputs = [...inputs];
+    newInputs[index] = value;
+    setInputs(newInputs);
+    controller.handleInputChange(...newInputs);
+    setEndOfAlgo(false);
+    setRenderTrigger((prev) => prev + 1);
+  };
+
+  const handleIClick = () => {
+    console.log('Clicked I button, ending algorithm');
+    setHistory((prev) => [
+      ...prev,
+      {
+        state: { ...state },
+        inputs: [...inputs],
+        endOfAlgo,
+      },
+    ]);
+    setFutureState(null);
+    setEndOfAlgo(true);
+  };
+
+  const handleFClick = () => {
+    console.log('Clicked f button, current step:', state.step);
+    setHistory((prev) => [
+      ...prev,
+      {
+        state: { ...state },
+        inputs: [...inputs],
+        endOfAlgo,
+      },
+    ]);
+    setFutureState(null);
+    controller.handleFClick();
+    setEndOfAlgo(false);
+    setRenderTrigger((prev) => prev + 1);
+  };
+
+  const handlePClick = () => {
+    console.log('Clicked ρ button, current step:', state.step);
+    setHistory((prev) => [
+      ...prev,
+      {
+        state: { ...state },
+        inputs: [...inputs],
+        endOfAlgo,
+      },
+    ]);
+    setFutureState(null);
+    controller.handlePClick();
+    setEndOfAlgo(false);
+    setRenderTrigger((prev) => prev + 1);
+  };
+
+  const handlePiClick = () => {
+    console.log('Clicked π button, current step:', state.step);
+    setHistory((prev) => [
+      ...prev,
+      {
+        state: { ...state },
+        inputs: [...inputs],
+        endOfAlgo,
+      },
+    ]);
+    setFutureState(null);
+    controller.handlePiClick();
+    setEndOfAlgo(false);
+    setRenderTrigger((prev) => prev + 1);
+  };
+
+  const handleTClick = () => {
+    console.log('Clicked T button, current step:', state.step);
+    setHistory((prev) => [
+      ...prev,
+      {
+        state: { ...state },
+        inputs: [...inputs],
+        endOfAlgo,
+      },
+    ]);
+    setFutureState(null);
+    controller.handleTClick();
+    setEndOfAlgo(false);
+    setRenderTrigger((prev) => prev + 1);
+  };
+
+  const displayInput = inputs.filter(Boolean).join(',');
+
+  const shouldShowIdentityNode = state.step >= 3 && !state.showT && state.fNodes.length > 0;
 
   return (
     <div className="flex">
       <div className="flex-1 max-w-5xl mx-auto p-4">
         <div className="mb-4 flex justify-between">
-          <button
-            onClick={handleUndo}
-            className={`p-2 rounded ${controller.model.history.length > 1 ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-300 cursor-not-allowed'}`}
-            disabled={controller.model.history.length <= 1} // Enable only if history has more than initial state
-          >
-            Undo
-          </button>
           <div className="flex space-x-2">
-            <input
-              type="number"
-              value={inputN}
-              onChange={(e) => {
-                const value = e.target.value;
-                setInputN(value);
-                controller.handleInputChange(value, inputM);
-                setRenderTrigger((prev) => prev + 1);
-              }}
-              placeholder={isTwoInputAlgorithm ? "Enter base (or first number)" : "Enter a number"}
-              className="p-2 border rounded"
-              min="0"
-            />
-            {isTwoInputAlgorithm && (
+            <button
+              onClick={handleUndo}
+              className={`p-2 rounded ${history.length > 0 ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-300 cursor-not-allowed'}`}
+              disabled={history.length === 0}
+            >
+              Undo
+            </button>
+            <button
+              onClick={handleRedo}
+              className={`p-2 rounded ${futureState ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-300 cursor-not-allowed'}`}
+              disabled={!futureState}
+            >
+              Redo
+            </button>
+          </div>
+          <div className="flex space-x-2">
+            {inputs.map((input, index) => (
               <input
+                key={index}
                 type="number"
-                value={inputM}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setInputM(value);
-                  controller.handleInputChange(inputN, value);
-                  setRenderTrigger((prev) => prev + 1);
-                }}
-                placeholder={state.algorithmName === 'exponentiation' ? "Enter power" : "Enter second number"}
+                value={input}
+                onChange={(e) => handleInputChange(index, e.target.value)}
+                placeholder={state.algorithm.inputLabels[index] || `Input ${index + 1}`}
                 className="p-2 border rounded"
                 min="0"
               />
-            )}
+            ))}
           </div>
         </div>
 
-        {(state.n !== '' || state.m !== '') && (
+        {inputs.some(Boolean) && (
           <div className="relative mb-8 bg-white">
             <div className="flex items-center justify-center mb-16">
               <div className="flex items-center">
-                <Node label={displayInput} />
+                <StateRect state={displayInput} />
                 <Arrow direction="right" />
                 <Node
                   label="f"
-                  onClick={() => {
-                    console.log('Clicked f button, current step:', state.step);
-                    controller.handleFClick();
-                    setRenderTrigger((prev) => prev + 1);
-                  }}
+                  onClick={handleFClick}
                   highlight={highlightButton === 'f'}
                 />
                 <Arrow direction="right" />
-                <Node label={state.showFinalResult ? state.result : '?'} />
+                <StateRect state={state.showFinalResult ? state.result : '?'} />
               </div>
             </div>
 
@@ -129,49 +238,40 @@ const App = () => {
               <div>
                 <div className="absolute left-8 top-20">
                   <div className="flex flex-col items-center">
-                    <Node label={displayInput} />
+                    <StateRect state={displayInput} />
                     <Arrow vertical />
                     <Node
                       label="ρ"
-                      onClick={() => {
-                        console.log('Clicked ρ button, current step:', state.step);
-                        controller.handlePClick();
-                        setRenderTrigger((prev) => prev + 1);
-                      }}
+                      onClick={handlePClick}
                       highlight={highlightButton === 'p'}
                     />
                     <Arrow vertical />
                     {state.showInitialState ? (
-                      <StateNode state={controller.model.calculateRho(state.n, state.m)} />
+                      <StateRect state={controller.model.calculateRho(state.n, state.m)} />
                     ) : (
-                      <Node label="?" />
+                      <StateRect state="?" />
                     )}
                   </div>
                 </div>
 
                 <div className="absolute right-8 top-20">
                   <div className="flex flex-col items-center">
-                    <Node label={state.showFinalResult ? state.result : '?'} />
+                    <StateRect state={state.showFinalResult ? state.result : '?'} />
                     <Arrow vertical direction="down" />
                     <Node
                       label="π"
-                      onClick={() => {
-                        console.log('Clicked π button, current step:', state.step);
-                        controller.handlePiClick();
-                        setRenderTrigger((prev) => prev + 1);
-                      }}
+                      onClick={handlePiClick}
                       highlight={highlightButton === 'pi'}
                     />
                     <Arrow vertical direction="down" />
                     {state.step >= 3.5 ? (
-                      <StateNode state={state.fNodes[state.fNodes.length - 1]} />
+                      <StateRect state={state.fNodes[state.fNodes.length - 1]} />
                     ) : (
-                      <Node label="?" />
+                      <StateRect state="?" />
                     )}
                   </div>
                 </div>
 
-                {/* Render F chain and prior states when step >= 2, T and next ? only when showT is true */}
                 {(state.step >= 2 || state.showT) && (
                   <div className="flex justify-center items-center mt-70">
                     <div className="flex items-center overflow-x-auto">
@@ -187,12 +287,21 @@ const App = () => {
                             label="F"
                             onClick={() => {
                               console.log('Clicked F node at index:', index);
+                              setHistory((prev) => [
+                                ...prev,
+                                {
+                                  state: { ...state },
+                                  inputs: [...inputs],
+                                  endOfAlgo,
+                                },
+                              ]);
+                              setFutureState(null);
                               setShowDialog(index);
                             }}
                           />
                           <Arrow direction="right" />
                           <StateRect state={stateNode} />
-                          {index < state.fNodes.length - 1 || state.showT ? (
+                          {index < state.fNodes.length - 1 || state.showT || shouldShowIdentityNode ? (
                             <Arrow direction="right" />
                           ) : null}
                         </React.Fragment>
@@ -201,20 +310,23 @@ const App = () => {
                         <>
                           <Node
                             label="T"
-                            onClick={() => {
-                              console.log('Clicked T button, current step:', state.step);
-                              controller.handleTClick();
-                              setRenderTrigger((prev) => prev + 1);
-                            }}
+                            onClick={handleTClick}
                             highlight={highlightButton === 't'}
                           />
                           <Arrow direction="right" />
                           {state.step < 3.5 ? (
-                            <Node label="?" /> // Show '?' until final iteration is done
+                            <StateRect state="?" />
                           ) : (
                             <StateRect state={state.fNodes[state.fNodes.length - 1]} />
                           )}
                         </>
+                      )}
+                      {shouldShowIdentityNode && !state.showT && (
+                        <Node
+                          label="I"
+                          onClick={handleIClick}
+                          highlight={false}
+                        />
                       )}
                     </div>
                   </div>
@@ -222,16 +334,18 @@ const App = () => {
 
                 {showDialog !== null && (
                   <div className="absolute left-0 right-0 mt-15 flex justify-center">
-                    <div className="bg-white p-4 rounded-lg shadow-lg border-2 border-gray-200">
+                    <div className="bg-white p-4 rounded-lg shadow-lg border-2 border-gray-400">
                       <div className="flex justify-between items-center mb-2">
                         <h3 className="text-lg font-semibold">Current State</h3>
-                        <X
+                        <button
                           className="cursor-pointer"
                           onClick={() => {
                             console.log('Closing dialog');
                             setShowDialog(null);
                           }}
-                        />
+                        >
+                          X
+                        </button>
                       </div>
                       <p className="text-lg">i: {state.fNodes[showDialog][0]}</p>
                       <p className="text-lg">a: {state.fNodes[showDialog][1]}</p>
@@ -243,41 +357,25 @@ const App = () => {
           </div>
         )}
 
-        {/* Move instruction box further below the computation flow */}
         <div className="text-center mt-40 p-4 bg-gray-100 rounded">
-          {state.computationText ||
-            (!state.n && !state.m
-              ? 'Enter a number to start'
-              : (state.n !== '' || state.m !== '') && state.step === 0
-              ? "Click 'f' to start the computation visualization"
-              : state.step === 1
-              ? "Click 'ρ' to initialize the state"
-              : state.step === 2
-              ? "Click 'T' to begin state transitions"
-              : state.step === 3.5
-              ? "Click 'π' to extract the final result"
-              : state.step === 4
-              ? `Result: ${state.result}`
-              : '')}
+          {endOfAlgo
+            ? 'End of Algorithm'
+            : state.computationText ||
+              (!inputs.some(Boolean)
+                ? 'Enter a number to start'
+                : inputs.some(Boolean) && state.step === 0
+                ? "Click 'f' to start the computation visualization"
+                : state.step === 1
+                ? "Click 'ρ' to initialize the state"
+                : state.step === 2
+                ? "Click 'T' to begin state transitions"
+                : state.step === 3.5
+                ? "Click 'π' to extract the final result"
+                : state.step === 4
+                ? `Result: ${state.result}`
+                : '')}
         </div>
       </div>
-
-      {showSidePanel && (
-        <SidePanel
-          algorithms={algorithms}
-          selectedAlgorithm={selectedAlgorithm}
-          onSelectAlgorithm={handleSelectAlgorithm}
-          onClose={toggleSidePanel}
-        />
-      )}
-      {!showSidePanel && (
-        <button
-          onClick={toggleSidePanel}
-          className="fixed right-4 top-4 p-2 bg-blue-500 text-white rounded"
-        >
-          Open Panel
-        </button>
-      )}
     </div>
   );
 };

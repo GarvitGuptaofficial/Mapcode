@@ -1,5 +1,7 @@
 export const factorialConfig = {
     name: 'Factorial',
+    numInputs: 1,
+    inputLabels: ['Enter number'],
     calculateNextState: (i, a) => {
       if (i === 0) return [0, a];
       return [i - 1, a * i];
