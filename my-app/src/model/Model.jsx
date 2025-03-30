@@ -46,6 +46,8 @@ export class Model {
     this.computationText = '';
   }
 
+
+
   setStep(step) {
     console.log('Setting step:', step);
     this.step = step;

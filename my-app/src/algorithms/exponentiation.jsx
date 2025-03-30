@@ -6,6 +6,7 @@ export const exponentiationConfig = {
       return [power, 1];
     },
     calculateNextState(i, result) {
+      if (i===0) return [0,result]
       const base = this.base;
       return [i - 1, result * base];
     },

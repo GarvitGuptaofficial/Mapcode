@@ -1,5 +1,5 @@
 import { Model } from '../model/Model';
-
+let first_time_T_final_state = true;
 export class Controller {
   constructor(config) {
     console.log('Initializing controller with config:', config.name);
@@ -7,6 +7,9 @@ export class Controller {
   }
 
   handleInputChange(...inputs) {
+    // this.model.setFirstTimeTFinalState(true);
+    first_time_T_final_state = true;
+    console.log(first_time_T_final_state)
     console.log('Handling input change:', inputs);
     // Pass the first two inputs (n and m) to setInput, ignore extras for now
     this.model.setInput(inputs[0] || '', inputs[1] || '');
@@ -65,7 +68,10 @@ export class Controller {
     } else if (state.step === 3) {
       const lastState = state.fNodes[state.fNodes.length - 1];
       const nextState = this.model.calculateNextState(...lastState);
-      this.model.setFNodes([...state.fNodes, nextState]);
+      if(first_time_T_final_state){
+        this.model.setFNodes([...state.fNodes, nextState]);
+
+      }
       let computationText = '';
       if (this.model.config.name === 'exponentiation' || this.model.config.name === 'gcd') {
         computationText = `Iteration ${state.fNodes.length + 1}: F(${lastState.join(',')}) = (${nextState.join(',')})`;
@@ -73,7 +79,7 @@ export class Controller {
         computationText = `Iteration ${state.fNodes.length + 1}: F(${lastState[0]},${lastState[1]}) = (${nextState[0]},${nextState[1]})`;
       }
       this.model.setComputationText(computationText);
-
+      console.log("Printing next state",nextState[0])
       // Check for fixed point
       let reachedFixedPoint = false;
       if (this.model.config.name === 'factorial' || this.model.config.name === 'exponentiation') {
@@ -82,6 +88,11 @@ export class Controller {
         reachedFixedPoint = nextState[1] === 0;
       } else {
         reachedFixedPoint = nextState[0] === 0; // Default for sum
+      }
+      if(first_time_T_final_state && reachedFixedPoint){
+        console.log('First time reached fixed point');
+        first_time_T_final_state = false;
+        reachedFixedPoint = false;
       }
 
       if (reachedFixedPoint) {

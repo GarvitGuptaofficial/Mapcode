@@ -35,24 +35,41 @@ export const StateRect = (({ state }) => {
   );
 })
 
-export const Arrow = ({ vertical = false, direction = 'right' }) => (
-  <div
-    className={
-      vertical
-        ? 'h-8 w-0.5 bg-gray-400 my-2'
-        : `w-8 h-0.5 bg-gray-400 mx-2 relative ${
-            direction === 'right' ? 'arrow-right' : 'arrow-left'
-          }`
-    }
-  >
-    {!vertical && (
+export const Arrow = ({ direction = 'right' }) => {
+  const isVertical = direction === 'up' || direction === 'down';
+
+  return (
+    <div
+      className={
+        isVertical
+          ? 'h-8 w-0.5 bg-gray-400 my-2 relative'
+          : 'w-8 h-0.5 bg-gray-400 mx-2 relative'
+      }
+    >
+      {/* Arrowhead */}
       <div
-        className={`absolute top-0 ${
-          direction === 'right' ? 'right-0' : 'left-0'
-        } transform -translate-y-1/2`}
+        className={`absolute ${
+          isVertical
+            ? direction === 'down'
+              ? 'bottom-0 left-1/2 -translate-x-1/2'
+              : 'top-0 left-1/2 -translate-x-1/2'
+            : direction === 'right'
+            ? 'right-0 top-1/2 -translate-y-1/2'
+            : 'left-0 top-1/2 -translate-y-1/2'
+        }`}
       >
-        <div className="w-0 h-0 border-t-4 border-t-transparent border-b-4 border-b-transparent border-l-4 border-l-gray-400"></div>
+        <div
+          className={`w-0 h-0 ${
+            direction === 'right'
+              ? 'w-0 h-0 border-t-4 border-t-transparent border-b-4 border-b-transparent border-l-4 border-l-gray-390'
+              : direction === 'left'
+              ? 'border-t-4 border-t-transparent border-b-4 border-b-transparent border-r-4 border-r-gray-390'
+              : direction === 'down'
+              ? 'border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-gray-390'
+              : 'border-l-4 border-l-transparent border-r-4 border-r-transparent border-b-4 border-b-gray-390'
+          }`}
+        ></div>
       </div>
-    )}
-  </div>
-);
+    </div>
+  );
+};

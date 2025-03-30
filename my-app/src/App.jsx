@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect ,useRef} from 'react';
 import { Controller } from './controller/Controller';
 import { Node, StateNode, StateRect, Arrow } from './view/Node';
+
+
 
 const App = ({ algorithm }) => {
   const [controller] = useState(() => new Controller(algorithm));
@@ -8,16 +10,18 @@ const App = ({ algorithm }) => {
   const [renderTrigger, setRenderTrigger] = useState(0);
   const [inputs, setInputs] = useState(Array(algorithm.numInputs).fill(''));
   const [endOfAlgo, setEndOfAlgo] = useState(false);
-  const [history, setHistory] = useState([]); // Store multiple previous states for undo
-  const [futureState, setFutureState] = useState(null); // Store one future state for redo
-
+  const [history, setHistory] = useState([]);
+  const [futureState, setFutureState] = useState(null);
+  const [first_time_T_final_state, setFirstTimeTFinalState] = useState(true);
   const state = controller.getState();
+
+
 
   useEffect(() => {
     controller.changeAlgorithm(algorithm);
     setInputs(Array(algorithm.numInputs).fill(''));
     setEndOfAlgo(false);
-    setHistory([]); // Clear history on algorithm change
+    setHistory([]);
     setFutureState(null);
     setRenderTrigger((prev) => prev + 1);
   }, [algorithm, controller]);
@@ -31,20 +35,18 @@ const App = ({ algorithm }) => {
     if (history.length === 0) return;
 
     console.log('Undo button clicked, history length:', history.length);
-    // Store the current state as the future state for redo
     setFutureState({
       state: { ...state },
       inputs: [...inputs],
       endOfAlgo,
     });
 
-    // Pop the last state from history and restore it
     const newHistory = [...history];
     const previousState = newHistory.pop();
-    Object.assign(controller.model, previousState.state); // Update the model's state
+    Object.assign(controller.model, previousState.state);
     setInputs(previousState.inputs);
     setEndOfAlgo(previousState.endOfAlgo);
-    setHistory(newHistory); // Update history
+    setHistory(newHistory);
     setRenderTrigger((prev) => prev + 1);
     console.log('State after undo:', controller.getState());
   };
@@ -53,7 +55,6 @@ const App = ({ algorithm }) => {
     if (!futureState) return;
 
     console.log('Redo button clicked, future state:', futureState);
-    // Add the current state to history for undo
     setHistory((prev) => [
       ...prev,
       {
@@ -63,13 +64,35 @@ const App = ({ algorithm }) => {
       },
     ]);
 
-    // Restore the future state
-    Object.assign(controller.model, futureState.state); // Update the model's state
+    Object.assign(controller.model, futureState.state);
     setInputs(futureState.inputs);
     setEndOfAlgo(futureState.endOfAlgo);
-    setFutureState(null); // Clear future state (one-step limit for redo)
+    setFutureState(null);
     setRenderTrigger((prev) => prev + 1);
     console.log('State after redo:', controller.getState());
+  };
+
+  const handleReset = () => {
+    console.log('Reset button clicked, resetting algorithm');
+    // Reset the controller's model to its initial state
+    controller.model.step = 0;
+    controller.model.n = 0;
+    controller.model.m = 0;
+    controller.model.fNodes = [];
+    controller.model.result = null;
+    controller.model.showT = true;
+    controller.model.showInitialState = false;
+    controller.model.showFinalResult = false;
+    controller.model.computationText = '';
+
+    // Reset local state
+    setInputs(Array(algorithm.numInputs).fill(''));
+    setEndOfAlgo(false);
+    setHistory([]);
+    setFutureState(null);
+    setShowDialog(null);
+    setRenderTrigger((prev) => prev + 1);
+    console.log('State after reset:', controller.getState());
   };
 
   const getHighlightButton = () => {
@@ -183,6 +206,8 @@ const App = ({ algorithm }) => {
 
   const shouldShowIdentityNode = state.step >= 3 && !state.showT && state.fNodes.length > 0;
 
+ 
+
   return (
     <div className="flex">
       <div className="flex-1 max-w-5xl mx-auto p-4">
@@ -202,6 +227,12 @@ const App = ({ algorithm }) => {
             >
               Redo
             </button>
+            <button
+              onClick={handleReset}
+              className="p-2 rounded bg-red-500 hover:bg-red-600"
+            >
+              Reset
+            </button>
           </div>
           <div className="flex space-x-2">
             {inputs.map((input, index) => (
@@ -217,6 +248,9 @@ const App = ({ algorithm }) => {
             ))}
           </div>
         </div>
+
+      
+      
 
         {inputs.some(Boolean) && (
           <div className="relative mb-8 bg-white">
@@ -239,14 +273,14 @@ const App = ({ algorithm }) => {
                 <div className="absolute left-8 top-20">
                   <div className="flex flex-col items-center">
                     <StateRect state={displayInput} />
-                    <Arrow vertical />
+                    <Arrow direction="down" />
                     <Node
                       label="ρ"
                       onClick={handlePClick}
                       highlight={highlightButton === 'p'}
                     />
-                    <Arrow vertical />
-                    {state.showInitialState ? (
+                    <Arrow direction="down" />
+                    {state.showInitialState  ? (
                       <StateRect state={controller.model.calculateRho(state.n, state.m)} />
                     ) : (
                       <StateRect state="?" />
@@ -257,13 +291,13 @@ const App = ({ algorithm }) => {
                 <div className="absolute right-8 top-20">
                   <div className="flex flex-col items-center">
                     <StateRect state={state.showFinalResult ? state.result : '?'} />
-                    <Arrow vertical direction="down" />
+                    <Arrow direction="up" />
                     <Node
                       label="π"
                       onClick={handlePiClick}
                       highlight={highlightButton === 'pi'}
                     />
-                    <Arrow vertical direction="down" />
+                    <Arrow direction="up" />
                     {state.step >= 3.5 ? (
                       <StateRect state={state.fNodes[state.fNodes.length - 1]} />
                     ) : (
@@ -281,6 +315,7 @@ const App = ({ algorithm }) => {
                           <Arrow direction="right" />
                         </>
                       )}
+                      <div className="flex items-center space-x-0 min-w-max">
                       {state.fNodes.map((stateNode, index) => (
                         <React.Fragment key={index}>
                           <Node
@@ -306,8 +341,11 @@ const App = ({ algorithm }) => {
                           ) : null}
                         </React.Fragment>
                       ))}
+                      </div>
+                      <div className="flex items-center space-x-0 min-w-max">
                       {state.showT && (
                         <>
+                        {/* T node */}
                           <Node
                             label="T"
                             onClick={handleTClick}
@@ -321,15 +359,26 @@ const App = ({ algorithm }) => {
                           )}
                         </>
                       )}
+                      </div>
+                      <div className="flex items-center space-x-0 min-w-max">
                       {shouldShowIdentityNode && !state.showT && (
+                        <>
                         <Node
+                          label="T"
+                          onClick={handleIClick}
+                          highlight={false}
+                        /> 
+                        <Arrow direction="right" />
+                          <Node
                           label="I"
                           onClick={handleIClick}
                           highlight={false}
                         />
+                        </>
                       )}
                     </div>
                   </div>
+                </div>
                 )}
 
                 {showDialog !== null && (
