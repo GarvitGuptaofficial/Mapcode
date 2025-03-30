@@ -1,16 +1,12 @@
 export const exponentiationConfig = {
-    name: 'exponentiation',
-    numInputs: 2,
-    inputLabels: ['Enter base', 'Enter power'],
-    calculateRho(base, power) {
-      return [power, 1];
-    },
-    calculateNextState(i, result) {
-      if (i===0) return [0,result]
-      const base = this.base;
-      return [i - 1, result * base];
-    },
-    calculatePi(i, result) {
-      return result;
-    },
-  };
+  name: 'Exponentiation',
+  numInputs: 2,
+  inputLabels: ['Base (a)', 'Exponent (n)'],
+  calculateNextState: (n, a, result) => {
+    if (n === 0) return [0, a, result];
+    return [n - 1, a, result * a];
+  },
+  calculateRho: (a, n) => [n, a, 1],
+  calculatePi: (n, a, result) => result,
+  checkTerminationCondition: (state) => state[0] === 0
+};

@@ -2,12 +2,12 @@ export class Model {
   constructor(config) {
     console.log('Initializing model with config:', config.name);
     this.config = config;
-    this.n = ''; // First input (base or first number)
-    this.m = ''; // Second input (power or second number)
+    this.inputs = []; // Array to store all inputs
+    this.initialState = null; // Store the initial state
     this.step = 0;
     this.fNodes = [];
     this.result = null;
-    this.showT = false;
+    this.showT = true;
     this.showInitialState = false;
     this.showFinalResult = false;
     this.computationText = '';
@@ -15,38 +15,32 @@ export class Model {
     this.history.push(this.getState()); // Initialize with initial state
   }
 
-  setInput(nValue, mValue = '') {
-    console.log('Setting inputs:', nValue, mValue);
-    const parsedN = parseInt(nValue);
-    const parsedM = mValue ? parseInt(mValue) : '';
-    if (!isNaN(parsedN) && parsedN >= 0) {
-      this.n = parsedN;
-      this.m = parsedM !== '' && !isNaN(parsedM) && parsedM >= 0 ? parsedM : '';
-      // For exponentiation and gcd, set the base in the config
-      if (this.config.name === 'exponentiation' || this.config.name === 'gcd') {
-        this.config.base = parsedN; // Store base for exponentiation
-      }
-      this.reset();
-      this.history.push(this.getState()); // Save state after update
+  setInputs(inputs) {
+    console.log('Setting inputs:', inputs);
+    if (Array.isArray(inputs)) {
+      this.inputs = inputs.map(input => {
+        const parsed = parseInt(input);
+        return !isNaN(parsed) && parsed >= 0 ? parsed : '';
+      }).filter(input => input !== '');
     } else {
-      this.n = '';
-      this.m = '';
+      this.inputs = [];
     }
-    console.log('Inputs set to:', this.n, this.m, 'History length:', this.history.length);
+    this.reset();
+    this.history.push(this.getState()); // Save state after update
+    console.log('Inputs set to:', this.inputs, 'History length:', this.history.length);
   }
 
   reset() {
     console.log('Resetting model state');
     this.step = 0;
+    this.initialState = null;
     this.fNodes = [];
     this.result = null;
-    this.showT = false;
+    this.showT = true;
     this.showInitialState = false;
     this.showFinalResult = false;
     this.computationText = '';
   }
-
-
 
   setStep(step) {
     console.log('Setting step:', step);
@@ -78,6 +72,11 @@ export class Model {
     this.fNodes = nodes;
   }
 
+  setInitialState(state) {
+    console.log('Setting initialState:', state);
+    this.initialState = state;
+  }
+
   setResult(result) {
     console.log('Setting result:', result);
     this.result = result;
@@ -87,15 +86,19 @@ export class Model {
     console.log('Saving state to history');
     this.history.push(this.getState());
     console.log('History length:', this.history.length);
+    console.log('Current state:', this.getState());
   }
 
   undo() {
     console.log('Undoing to previous state, Current History length:', this.history.length);
     if (this.history.length > 1) { // Leave at least the initial state
-      const previousState = this.history.pop(); // Pop the previous state
+      this.history.pop(); // Remove current state
+      const previousState = this.history[this.history.length - 1]; // Get previous state
+      
       if (previousState) {
-        this.n = previousState.n;
-        this.m = previousState.m;
+        // Copy previous state properties
+        this.inputs = [...previousState.inputs];
+        this.initialState = previousState.initialState;
         this.step = previousState.step;
         this.fNodes = [...previousState.fNodes];
         this.result = previousState.result;
@@ -103,32 +106,7 @@ export class Model {
         this.showInitialState = previousState.showInitialState;
         this.showFinalResult = previousState.showFinalResult;
         this.computationText = previousState.computationText;
-        // Restore config.base if applicable
-        if (this.config.name === 'exponentiation' || this.config.name === 'gcd') {
-          this.config.base = previousState.n;
-        }
-
-        // Special handling for specific undo cases
-        if (this.step === 1 && previousState.step === 2) {
-          // Undo from ρ: Reset initial state and remove T input
-          this.showInitialState = false;
-          this.fNodes = [];
-          console.log('Undid ρ, reset initial state and T input');
-        } else if (this.step === 3 && previousState.step === 3 && this.fNodes.length > previousState.fNodes.length) {
-          // Undo from T: Remove the last F node
-          this.fNodes.pop();
-          this.computationText = this.fNodes.length > 0 
-            ? `Iteration ${this.fNodes.length}: F(${this.fNodes[this.fNodes.length - 1][0]},${this.fNodes[this.fNodes.length - 1][1]}) = (?)`
-            : 'Click T to begin state transitions';
-          console.log('Undid T, removed last F node');
-        } else if (this.step === 3.5 && previousState.step === 4) {
-          // Undo from π: Reset final result and show ?
-          this.showFinalResult = false;
-          this.result = null;
-          this.computationText = 'Click π to extract the final result';
-          console.log('Undid π, reset final result');
-        }
-
+        
         console.log('Undone to step:', this.step, 'History length:', this.history.length);
       }
     } else {
@@ -137,32 +115,59 @@ export class Model {
   }
 
   calculateNextState(...args) {
-    const nextState = this.config.calculateNextState(...args);
-    console.log(`Calculating next state for args=${args}:`, nextState);
-    return nextState;
+    if (typeof this.config.calculateNextState === 'function') {
+      const nextState = this.config.calculateNextState(...args);
+      console.log(`Calculating next state for args=${args}:`, nextState);
+      return nextState;
+    }
+    console.error('calculateNextState not defined in algorithm config');
+    return args;
   }
 
-  calculateRho(n, m) {
-    let rho;
-    if (this.config.name === 'exponentiation' || this.config.name === 'gcd') {
-      rho = this.config.calculateRho(n, m);
-    } else {
-      rho = this.config.calculateRho(n);
+  calculateRho(...args) {
+    if (typeof this.config.calculateRho === 'function') {
+      const rho = this.config.calculateRho(...args);
+      console.log(`Calculating ρ(${args}):`, rho);
+      return rho;
     }
-    console.log(`Calculating ρ(${n}${m !== '' ? `,${m}` : ''}):`, rho);
-    return rho;
+    console.error('calculateRho not defined in algorithm config');
+    return args;
   }
 
   calculatePi(...args) {
-    const pi = this.config.calculatePi(...args);
-    console.log(`Calculating π(${args}):`, pi);
-    return pi;
+    if (typeof this.config.calculatePi === 'function') {
+      const pi = this.config.calculatePi(...args);
+      console.log(`Calculating π(${args}):`, pi);
+      return pi;
+    }
+    console.error('calculatePi not defined in algorithm config');
+    return args[0];
+  }
+
+  checkTerminationCondition(state) {
+    if (typeof this.config.checkTerminationCondition === 'function') {
+      return this.config.checkTerminationCondition(state);
+    }
+    
+    // Default termination condition if not specified in config
+    if (this.fNodes.length > 0) {
+      const previousState = this.fNodes[this.fNodes.length - 1];
+      
+      // Compare arrays or simple values
+      if (Array.isArray(state) && Array.isArray(previousState)) {
+        return state.length === previousState.length && 
+               state.every((val, idx) => val === previousState[idx]);
+      } else {
+        return state === previousState;
+      }
+    }
+    return false;
   }
 
   getState() {
     return {
-      n: this.n,
-      m: this.m,
+      inputs: this.inputs,
+      initialState: this.initialState,
       step: this.step,
       fNodes: this.fNodes,
       result: this.result,

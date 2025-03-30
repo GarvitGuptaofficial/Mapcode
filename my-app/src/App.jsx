@@ -1,25 +1,22 @@
-import React, { useState, useEffect ,useRef} from 'react';
+import React, { useState, useEffect } from 'react';
 import { Controller } from './controller/Controller';
 import { Node, StateNode, StateRect, Arrow } from './view/Node';
 
-
-
 const App = ({ algorithm }) => {
   const [controller] = useState(() => new Controller(algorithm));
-  const [showDialog, setShowDialog] = useState(null);
+  const [showDialog, setShowDialog] = useState(false);
+  const [dialogContent, setDialogContent] = useState(null);
   const [renderTrigger, setRenderTrigger] = useState(0);
-  const [inputs, setInputs] = useState(Array(algorithm.numInputs).fill(''));
+  const [inputs, setInputs] = useState(Array(algorithm.numInputs || 1).fill(''));
   const [endOfAlgo, setEndOfAlgo] = useState(false);
   const [history, setHistory] = useState([]);
   const [futureState, setFutureState] = useState(null);
   const [first_time_T_final_state, setFirstTimeTFinalState] = useState(true);
   const state = controller.getState();
 
-
-
   useEffect(() => {
     controller.changeAlgorithm(algorithm);
-    setInputs(Array(algorithm.numInputs).fill(''));
+    setInputs(Array(algorithm.numInputs || 1).fill(''));
     setEndOfAlgo(false);
     setHistory([]);
     setFutureState(null);
@@ -29,31 +26,51 @@ const App = ({ algorithm }) => {
   useEffect(() => {
     setRenderTrigger((prev) => prev + 1);
     console.log('State updated:', state);
-  }, [state.step, state.n, state.m, state.fNodes, state.result, state.showT, state.showInitialState, state.showFinalResult, state.computationText]);
+  }, [state.step, state.inputs, state.fNodes, state.result, state.showT, state.showInitialState, state.showFinalState, state.computationText]);
+
+
 
   const handleUndo = () => {
     if (history.length === 0) return;
-
+  
     console.log('Undo button clicked, history length:', history.length);
+    
+    // Create future state before changing anything
     setFutureState({
       state: { ...state },
       inputs: [...inputs],
       endOfAlgo,
+      first_time_T: first_time_T_final_state
     });
-
+  
     const newHistory = [...history];
     const previousState = newHistory.pop();
-    Object.assign(controller.model, previousState.state);
+    
+    // Directly update controller's model state instead of object assign
+    controller.model.inputs = [...previousState.state.inputs];
+    controller.model.initialState = previousState.state.initialState;
+    controller.model.step = previousState.state.step;
+    controller.model.fNodes = [...previousState.state.fNodes];
+    controller.model.result = previousState.state.result;
+    controller.model.showT = previousState.state.showT;
+    controller.model.showInitialState = previousState.state.showInitialState;
+    controller.model.showFinalResult = previousState.state.showFinalResult;
+    controller.model.computationText = previousState.state.computationText;
+    
+    // Update the app's state variables
     setInputs(previousState.inputs);
     setEndOfAlgo(previousState.endOfAlgo);
+    setFirstTimeTFinalState(previousState.first_time_T || true);
     setHistory(newHistory);
+    
+    // Force a render update
     setRenderTrigger((prev) => prev + 1);
     console.log('State after undo:', controller.getState());
   };
 
   const handleRedo = () => {
     if (!futureState) return;
-
+  
     console.log('Redo button clicked, future state:', futureState);
     setHistory((prev) => [
       ...prev,
@@ -61,13 +78,27 @@ const App = ({ algorithm }) => {
         state: { ...state },
         inputs: [...inputs],
         endOfAlgo,
+        first_time_T: first_time_T_final_state
       },
     ]);
-
-    Object.assign(controller.model, futureState.state);
+  
+    // Directly update controller's model state
+    controller.model.inputs = [...futureState.state.inputs];
+    controller.model.initialState = futureState.state.initialState;
+    controller.model.step = futureState.state.step;
+    controller.model.fNodes = [...futureState.state.fNodes];
+    controller.model.result = futureState.state.result;
+    controller.model.showT = futureState.state.showT;
+    controller.model.showInitialState = futureState.state.showInitialState;
+    controller.model.showFinalResult = futureState.state.showFinalResult;
+    controller.model.computationText = futureState.state.computationText;
+    
     setInputs(futureState.inputs);
     setEndOfAlgo(futureState.endOfAlgo);
+    setFirstTimeTFinalState(futureState.first_time_T || true);
     setFutureState(null);
+    
+    // Force a render update
     setRenderTrigger((prev) => prev + 1);
     console.log('State after redo:', controller.getState());
   };
@@ -76,8 +107,7 @@ const App = ({ algorithm }) => {
     console.log('Reset button clicked, resetting algorithm');
     // Reset the controller's model to its initial state
     controller.model.step = 0;
-    controller.model.n = 0;
-    controller.model.m = 0;
+    controller.model.inputs = [];
     controller.model.fNodes = [];
     controller.model.result = null;
     controller.model.showT = true;
@@ -86,11 +116,12 @@ const App = ({ algorithm }) => {
     controller.model.computationText = '';
 
     // Reset local state
-    setInputs(Array(algorithm.numInputs).fill(''));
+    setInputs(Array(algorithm.numInputs || 1).fill(''));
     setEndOfAlgo(false);
     setHistory([]);
     setFutureState(null);
-    setShowDialog(null);
+    setShowDialog(false);
+    setDialogContent(null);
     setRenderTrigger((prev) => prev + 1);
     console.log('State after reset:', controller.getState());
   };
@@ -112,6 +143,7 @@ const App = ({ algorithm }) => {
         state: { ...state },
         inputs: [...inputs],
         endOfAlgo,
+        first_time_T: first_time_T_final_state
       },
     ]);
     setFutureState(null);
@@ -119,7 +151,7 @@ const App = ({ algorithm }) => {
     const newInputs = [...inputs];
     newInputs[index] = value;
     setInputs(newInputs);
-    controller.handleInputChange(...newInputs);
+    controller.handleInputChange(newInputs);
     setEndOfAlgo(false);
     setRenderTrigger((prev) => prev + 1);
   };
@@ -132,6 +164,7 @@ const App = ({ algorithm }) => {
         state: { ...state },
         inputs: [...inputs],
         endOfAlgo,
+        first_time_T: first_time_T_final_state
       },
     ]);
     setFutureState(null);
@@ -146,6 +179,7 @@ const App = ({ algorithm }) => {
         state: { ...state },
         inputs: [...inputs],
         endOfAlgo,
+        first_time_T: first_time_T_final_state
       },
     ]);
     setFutureState(null);
@@ -162,6 +196,7 @@ const App = ({ algorithm }) => {
         state: { ...state },
         inputs: [...inputs],
         endOfAlgo,
+        first_time_T: first_time_T_final_state
       },
     ]);
     setFutureState(null);
@@ -178,6 +213,7 @@ const App = ({ algorithm }) => {
         state: { ...state },
         inputs: [...inputs],
         endOfAlgo,
+        first_time_T: first_time_T_final_state
       },
     ]);
     setFutureState(null);
@@ -194,6 +230,7 @@ const App = ({ algorithm }) => {
         state: { ...state },
         inputs: [...inputs],
         endOfAlgo,
+        first_time_T: first_time_T_final_state
       },
     ]);
     setFutureState(null);
@@ -202,11 +239,32 @@ const App = ({ algorithm }) => {
     setRenderTrigger((prev) => prev + 1);
   };
 
+  // New function to show dialog with custom content
+  const showDialogWithContent = (content) => {
+    console.log('Showing dialog with content:', content);
+    // setHistory((prev) => [
+    //   ...prev,
+    //   {
+    //     state: { ...state },
+    //     inputs: [...inputs],
+    //     endOfAlgo,
+    //     first_time_T: first_time_T_final_state
+    //   },
+    // ]);
+    // setFutureState(null);
+    setDialogContent(content);
+    setShowDialog(true);
+  };
+
   const displayInput = inputs.filter(Boolean).join(',');
 
   const shouldShowIdentityNode = state.step >= 3 && !state.showT && state.fNodes.length > 0;
 
- 
+  // Function to format display of state arrays
+  const formatState = (stateArray) => {
+    if (!Array.isArray(stateArray)) return stateArray;
+    return stateArray.join(',');
+  };
 
   return (
     <div className="flex">
@@ -241,7 +299,7 @@ const App = ({ algorithm }) => {
                 type="number"
                 value={input}
                 onChange={(e) => handleInputChange(index, e.target.value)}
-                placeholder={state.algorithm.inputLabels[index] || `Input ${index + 1}`}
+                placeholder={state.algorithm?.inputLabels?.[index] || `Input ${index + 1}`}
                 className="p-2 border rounded"
                 min="0"
               />
@@ -249,14 +307,15 @@ const App = ({ algorithm }) => {
           </div>
         </div>
 
-      
-      
-
         {inputs.some(Boolean) && (
           <div className="relative mb-8 bg-white">
             <div className="flex items-center justify-center mb-16">
               <div className="flex items-center">
-                <StateRect state={displayInput} />
+                <StateRect 
+                color='blue'
+                  state={displayInput} 
+                  onClick={() => showDialogWithContent({ title: 'Input', values: { input: displayInput } })}
+                />
                 <Arrow direction="right" />
                 <Node
                   label="f"
@@ -264,7 +323,11 @@ const App = ({ algorithm }) => {
                   highlight={highlightButton === 'f'}
                 />
                 <Arrow direction="right" />
-                <StateRect state={state.showFinalResult ? state.result : '?'} />
+                <StateRect 
+                showSymbol={state.step !== 4}
+                  state={state.showFinalResult ? formatState(state.result) : '?'} 
+                  onClick={state.showFinalResult ? () => showDialogWithContent({ title: 'Result', values: { result: formatState(state.result) } }) : null}
+                />
               </div>
             </div>
 
@@ -272,7 +335,11 @@ const App = ({ algorithm }) => {
               <div>
                 <div className="absolute left-8 top-20">
                   <div className="flex flex-col items-center">
-                    <StateRect state={displayInput} />
+                    <StateRect 
+                    color='blue'
+                      state={displayInput} 
+                      onClick={() => showDialogWithContent({ title: 'Input', values: { input: displayInput } })}
+                    />
                     <Arrow direction="down" />
                     <Node
                       label="ρ"
@@ -280,17 +347,32 @@ const App = ({ algorithm }) => {
                       highlight={highlightButton === 'p'}
                     />
                     <Arrow direction="down" />
-                    {state.showInitialState  ? (
-                      <StateRect state={controller.model.calculateRho(state.n, state.m)} />
+                    {state.showInitialState ? (
+                      <StateRect 
+                      // showSymbol={state.step !== 1}
+                      color='green'
+                        state={formatState(state.initialState)} 
+                        onClick={() => showDialogWithContent({ 
+                          title: 'Initial State', 
+                          values: { 
+                            inputs: formatState(inputs.filter(Boolean)),
+                            state: formatState(state.initialState)
+                          } 
+                        })}
+                      />
                     ) : (
-                      <StateRect state="?" />
+                      <StateRect state="?" showSymbol={true}/>
                     )}
                   </div>
                 </div>
 
                 <div className="absolute right-8 top-20">
                   <div className="flex flex-col items-center">
-                    <StateRect state={state.showFinalResult ? state.result : '?'} />
+                    <StateRect 
+                    showSymbol={state.step !== 4}
+                      state={state.showFinalResult ? formatState(state.result) : '?'} 
+                      onClick={state.showFinalResult ? () => showDialogWithContent({ title: 'Result', values: { result: formatState(state.result) } }) : null}
+                    />
                     <Arrow direction="up" />
                     <Node
                       label="π"
@@ -299,19 +381,43 @@ const App = ({ algorithm }) => {
                     />
                     <Arrow direction="up" />
                     {state.step >= 3.5 ? (
-                      <StateRect state={state.fNodes[state.fNodes.length - 1]} />
+                      <StateRect 
+                        
+                        color='red'
+                        state={formatState(state.fNodes[state.fNodes.length - 1])} 
+                        onClick={() => {
+                          const lastNode = state.fNodes[state.fNodes.length - 1];
+                          showDialogWithContent({ 
+                            title: 'Final Node State', 
+                            values: { 
+                              state: formatState(lastNode)
+                            } 
+                          });
+                        }}
+                      />
                     ) : (
-                      <StateRect state="?" />
+                      <StateRect state="?" showSymbol={true}/>
                     )}
                   </div>
                 </div>
 
                 {(state.step >= 2 || state.showT) && (
-                  <div className="flex justify-center items-center mt-70">
-                    <div className="flex items-center overflow-x-auto">
+                  <div className="flex justify-center items-center mt-70 relative">
+                  <div className="flex items-center overflow-x-auto" style={{ scrollbarWidth: 'thin', msOverflowStyle: 'none' }} id="nodeContainer">
+                    <div className="flex items-center">
                       {state.step >= 2 && (
                         <>
-                          <StateRect state={controller.model.calculateRho(state.n, state.m)} />
+                          <StateRect 
+                            color='green'
+                            state={formatState(state.initialState)} 
+                            onClick={() => showDialogWithContent({ 
+                              title: 'Initial State', 
+                              values: { 
+                                inputs: formatState(inputs.filter(Boolean)),
+                                state: formatState(state.initialState)
+                              } 
+                            })}
+                          />
                           <Arrow direction="right" />
                         </>
                       )}
@@ -320,22 +426,28 @@ const App = ({ algorithm }) => {
                         <React.Fragment key={index}>
                           <Node
                             label="F"
-                            onClick={() => {
-                              console.log('Clicked F node at index:', index);
-                              setHistory((prev) => [
-                                ...prev,
-                                {
-                                  state: { ...state },
-                                  inputs: [...inputs],
-                                  endOfAlgo,
-                                },
-                              ]);
-                              setFutureState(null);
-                              setShowDialog(index);
-                            }}
+                            // onClick={() => {
+                            //   showDialogWithContent({ 
+                            //     title: `Node State ${index + 1}`, 
+                            //     values: { 
+                            //       state: formatState(stateNode)
+                            //     } 
+                            //   });
+                            // }}
                           />
                           <Arrow direction="right" />
-                          <StateRect state={stateNode} />
+                          <StateRect 
+                            color='yellow'
+                            state={formatState(stateNode)} 
+                            onClick={() => {
+                              showDialogWithContent({ 
+                                title: `Node State ${index + 1}`, 
+                                values: { 
+                                  state: formatState(stateNode)
+                                } 
+                              });
+                            }}
+                          />
                           {index < state.fNodes.length - 1 || state.showT || shouldShowIdentityNode ? (
                             <Arrow direction="right" />
                           ) : null}
@@ -353,9 +465,20 @@ const App = ({ algorithm }) => {
                           />
                           <Arrow direction="right" />
                           {state.step < 3.5 ? (
-                            <StateRect state="?" />
+                            <StateRect state="?" showSymbol={true}/>
                           ) : (
-                            <StateRect state={state.fNodes[state.fNodes.length - 1]} />
+                            <StateRect 
+                              state={formatState(state.fNodes[state.fNodes.length - 1])} 
+                              onClick={() => {
+                                const lastNode = state.fNodes[state.fNodes.length - 1];
+                                showDialogWithContent({ 
+                                  title: 'Final Node State', 
+                                  values: { 
+                                    state: formatState(lastNode)
+                                  } 
+                                });
+                              }}
+                            />
                           )}
                         </>
                       )}
@@ -369,35 +492,46 @@ const App = ({ algorithm }) => {
                           highlight={false}
                         /> 
                         <Arrow direction="right" />
-                          <Node
-                          label="I"
-                          onClick={handleIClick}
-                          highlight={false}
-                        />
+                        <StateRect 
+                        color='red'
+                              state={formatState(state.fNodes[state.fNodes.length - 1])} 
+                              onClick={() => {
+                                const lastNode = state.fNodes[state.fNodes.length - 1];
+                                showDialogWithContent({ 
+                                  title: 'Final Node State', 
+                                  values: { 
+                                    state: formatState(lastNode)
+                                  } 
+                                });
+                              }}
+                            />
                         </>
                       )}
                     </div>
                   </div>
                 </div>
+                </div>
                 )}
 
-                {showDialog !== null && (
+                {showDialog && dialogContent && (
                   <div className="absolute left-0 right-0 mt-15 flex justify-center">
                     <div className="bg-white p-4 rounded-lg shadow-lg border-2 border-gray-400">
                       <div className="flex justify-between items-center mb-2">
-                        <h3 className="text-lg font-semibold">Current State</h3>
+                        <h3 className="text-lg font-semibold">{dialogContent.title || 'Information'}</h3>
                         <button
                           className="cursor-pointer"
                           onClick={() => {
                             console.log('Closing dialog');
-                            setShowDialog(null);
+                            setShowDialog(false);
+                            setDialogContent(null);
                           }}
                         >
                           X
                         </button>
                       </div>
-                      <p className="text-lg">i: {state.fNodes[showDialog][0]}</p>
-                      <p className="text-lg">a: {state.fNodes[showDialog][1]}</p>
+                      {dialogContent.values && Object.entries(dialogContent.values).map(([key, value]) => (
+                        <p key={key} className="text-lg">{key}: {value}</p>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -411,7 +545,7 @@ const App = ({ algorithm }) => {
             ? 'End of Algorithm'
             : state.computationText ||
               (!inputs.some(Boolean)
-                ? 'Enter a number to start'
+                ? 'Enter values to start'
                 : inputs.some(Boolean) && state.step === 0
                 ? "Click 'f' to start the computation visualization"
                 : state.step === 1
@@ -421,7 +555,7 @@ const App = ({ algorithm }) => {
                 : state.step === 3.5
                 ? "Click 'π' to extract the final result"
                 : state.step === 4
-                ? `Result: ${state.result}`
+                ? `Result: ${formatState(state.result)}`
                 : '')}
         </div>
       </div>

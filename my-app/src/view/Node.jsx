@@ -1,4 +1,5 @@
 import React from 'react';
+import { useState } from 'react';
 
 export const Node = ({ label, onClick, className = '', highlight = false }) => (
   <div
@@ -23,17 +24,28 @@ export const StateNode = ({ state }) => {
   );
 };
 
-export const StateRect = (({ state }) => {
-  const displayState = Array.isArray(state)
-    ? `[${state.join(',')}]`
-    : state?.toString() || '';
+export const StateRect = ({ state, onClick, color = 'gray', showSymbol = false }) => {
+  const colors = {
+    gray: 'bg-gray-500',
+    red: 'bg-red-300',
+    blue: 'bg-blue-300',
+    green: 'bg-green-300',
+    yellow: 'bg-yellow-300',
+  };
 
   return (
-    <div className="h-10 px-2 border-2 border-gray-400 rounded flex items-center justify-center bg-white">
-      {displayState}
-    </div>
+    <button
+      className={`h-6 w-10 rounded-md border border-black ${showSymbol ? 'bg-white text-black' : colors[color] || colors.gray} flex items-center justify-center`}
+      onClick={onClick}
+    >
+      {showSymbol ? '?' : ''}
+    </button>
   );
-})
+};
+
+
+
+
 
 export const Arrow = ({ direction = 'right' }) => {
   const isVertical = direction === 'up' || direction === 'down';
