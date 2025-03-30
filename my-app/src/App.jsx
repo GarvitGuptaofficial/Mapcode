@@ -10,7 +10,7 @@ const App = ({ algorithm }) => {
   const [inputs, setInputs] = useState(Array(algorithm.numInputs || 1).fill(''));
   const [endOfAlgo, setEndOfAlgo] = useState(false);
   const [history, setHistory] = useState([]);
-  const [futureState, setFutureState] = useState(null);
+  const [futureStates, setFutureStates] = useState([]); // Changed from futureState to futureStates array
   const [first_time_T_final_state, setFirstTimeTFinalState] = useState(true);
   const state = controller.getState();
 
@@ -19,7 +19,7 @@ const App = ({ algorithm }) => {
     setInputs(Array(algorithm.numInputs || 1).fill(''));
     setEndOfAlgo(false);
     setHistory([]);
-    setFutureState(null);
+    setFutureStates([]); // Reset future states array
     setRenderTrigger((prev) => prev + 1);
   }, [algorithm, controller]);
 
@@ -28,25 +28,26 @@ const App = ({ algorithm }) => {
     console.log('State updated:', state);
   }, [state.step, state.inputs, state.fNodes, state.result, state.showT, state.showInitialState, state.showFinalState, state.computationText]);
 
-
-
   const handleUndo = () => {
     if (history.length === 0) return;
   
     console.log('Undo button clicked, history length:', history.length);
     
-    // Create future state before changing anything
-    setFutureState({
-      state: { ...state },
-      inputs: [...inputs],
-      endOfAlgo,
-      first_time_T: first_time_T_final_state
-    });
+    // Save current state to future states for redo
+    setFutureStates(prevFutureStates => [
+      {
+        state: { ...state },
+        inputs: [...inputs],
+        endOfAlgo,
+        first_time_T: first_time_T_final_state
+      },
+      ...prevFutureStates // Add to beginning of array
+    ]);
   
     const newHistory = [...history];
     const previousState = newHistory.pop();
     
-    // Directly update controller's model state instead of object assign
+    // Directly update controller's model state
     controller.model.inputs = [...previousState.state.inputs];
     controller.model.initialState = previousState.state.initialState;
     controller.model.step = previousState.state.step;
@@ -69,9 +70,15 @@ const App = ({ algorithm }) => {
   };
 
   const handleRedo = () => {
-    if (!futureState) return;
+    if (futureStates.length === 0) return;
   
-    console.log('Redo button clicked, future state:', futureState);
+    console.log('Redo button clicked, future states available:', futureStates.length);
+    
+    // Get the next future state (from the beginning of the array)
+    const nextFutureState = futureStates[0];
+    const remainingFutureStates = futureStates.slice(1);
+    
+    // Save current state to history before applying the redo
     setHistory((prev) => [
       ...prev,
       {
@@ -82,21 +89,23 @@ const App = ({ algorithm }) => {
       },
     ]);
   
-    // Directly update controller's model state
-    controller.model.inputs = [...futureState.state.inputs];
-    controller.model.initialState = futureState.state.initialState;
-    controller.model.step = futureState.state.step;
-    controller.model.fNodes = [...futureState.state.fNodes];
-    controller.model.result = futureState.state.result;
-    controller.model.showT = futureState.state.showT;
-    controller.model.showInitialState = futureState.state.showInitialState;
-    controller.model.showFinalResult = futureState.state.showFinalResult;
-    controller.model.computationText = futureState.state.computationText;
+    // Apply the future state
+    controller.model.inputs = [...nextFutureState.state.inputs];
+    controller.model.initialState = nextFutureState.state.initialState;
+    controller.model.step = nextFutureState.state.step;
+    controller.model.fNodes = [...nextFutureState.state.fNodes];
+    controller.model.result = nextFutureState.state.result;
+    controller.model.showT = nextFutureState.state.showT;
+    controller.model.showInitialState = nextFutureState.state.showInitialState;
+    controller.model.showFinalResult = nextFutureState.state.showFinalResult;
+    controller.model.computationText = nextFutureState.state.computationText;
     
-    setInputs(futureState.inputs);
-    setEndOfAlgo(futureState.endOfAlgo);
-    setFirstTimeTFinalState(futureState.first_time_T || true);
-    setFutureState(null);
+    setInputs(nextFutureState.inputs);
+    setEndOfAlgo(nextFutureState.endOfAlgo);
+    setFirstTimeTFinalState(nextFutureState.first_time_T || true);
+    
+    // Update future states
+    setFutureStates(remainingFutureStates);
     
     // Force a render update
     setRenderTrigger((prev) => prev + 1);
@@ -119,7 +128,7 @@ const App = ({ algorithm }) => {
     setInputs(Array(algorithm.numInputs || 1).fill(''));
     setEndOfAlgo(false);
     setHistory([]);
-    setFutureState(null);
+    setFutureStates([]); // Clear future states
     setShowDialog(false);
     setDialogContent(null);
     setRenderTrigger((prev) => prev + 1);
@@ -146,7 +155,7 @@ const App = ({ algorithm }) => {
         first_time_T: first_time_T_final_state
       },
     ]);
-    setFutureState(null);
+    setFutureStates([]); // Clear future states on new action
 
     const newInputs = [...inputs];
     newInputs[index] = value;
@@ -167,7 +176,7 @@ const App = ({ algorithm }) => {
         first_time_T: first_time_T_final_state
       },
     ]);
-    setFutureState(null);
+    setFutureStates([]); // Clear future states on new action
     setEndOfAlgo(true);
   };
 
@@ -182,7 +191,7 @@ const App = ({ algorithm }) => {
         first_time_T: first_time_T_final_state
       },
     ]);
-    setFutureState(null);
+    setFutureStates([]); // Clear future states on new action
     controller.handleFClick();
     setEndOfAlgo(false);
     setRenderTrigger((prev) => prev + 1);
@@ -199,7 +208,7 @@ const App = ({ algorithm }) => {
         first_time_T: first_time_T_final_state
       },
     ]);
-    setFutureState(null);
+    setFutureStates([]); // Clear future states on new action
     controller.handlePClick();
     setEndOfAlgo(false);
     setRenderTrigger((prev) => prev + 1);
@@ -216,7 +225,7 @@ const App = ({ algorithm }) => {
         first_time_T: first_time_T_final_state
       },
     ]);
-    setFutureState(null);
+    setFutureStates([]); // Clear future states on new action
     controller.handlePiClick();
     setEndOfAlgo(false);
     setRenderTrigger((prev) => prev + 1);
@@ -233,7 +242,7 @@ const App = ({ algorithm }) => {
         first_time_T: first_time_T_final_state
       },
     ]);
-    setFutureState(null);
+    setFutureStates([]); // Clear future states on new action
     controller.handleTClick();
     setEndOfAlgo(false);
     setRenderTrigger((prev) => prev + 1);
@@ -280,8 +289,8 @@ const App = ({ algorithm }) => {
             </button>
             <button
               onClick={handleRedo}
-              className={`p-2 rounded ${futureState ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-300 cursor-not-allowed'}`}
-              disabled={!futureState}
+              className={`p-2 rounded ${futureStates.length > 0 ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-300 cursor-not-allowed'}`}
+              disabled={futureStates.length === 0}
             >
               Redo
             </button>

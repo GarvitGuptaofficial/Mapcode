@@ -47,9 +47,51 @@ export const StateRect = ({ state, onClick, color = 'gray', showSymbol = false }
 
 
 
-export const Arrow = ({ direction = 'right' }) => {
+export const Arrow = ({ direction = 'right', startX = 0, startY = 0, endX = 0, endY = 0, style }) => {
   const isVertical = direction === 'up' || direction === 'down';
 
+  if (direction === 'custom') {
+    // Calculate the length of the line for positioning the arrowhead
+    const length = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
+    const angle = Math.atan2(endY - startY, endX - startX) * (180 / Math.PI);
+
+    return (
+      <svg
+        style={{
+          position: 'absolute',
+          left: Math.min(startX, endX),
+          top: Math.min(startY, endY),
+          width: Math.abs(endX - startX),
+          height: Math.abs(endY - startY),
+          ...style,
+        }}
+      >
+        <line
+          x1={startX < endX ? 0 : Math.abs(endX - startX)}
+          y1={startY < endY ? 0 : Math.abs(endY - startY)}
+          x2={startX < endX ? Math.abs(endX - startX) : 0}
+          y2={startY < endY ? Math.abs(endY - startY) : 0}
+          stroke="gray"
+          strokeWidth="2"
+          markerEnd="url(#arrowhead)"
+        />
+        <defs>
+          <marker
+            id="arrowhead"
+            markerWidth="10"
+            markerHeight="7"
+            refX="10"
+            refY="3.5"
+            orient="auto"
+          >
+            <polygon points="0 0, 10 3.5, 0 7" fill="gray" />
+          </marker>
+        </defs>
+      </svg>
+    );
+  }
+
+  // Existing rendering for horizontal and vertical arrows
   return (
     <div
       className={
