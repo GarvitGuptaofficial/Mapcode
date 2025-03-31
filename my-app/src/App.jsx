@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Controller } from './controller/Controller';
 import { Node, StateNode, StateRect, Arrow } from './view/Node';
 
@@ -10,7 +10,7 @@ const App = ({ algorithm }) => {
   const [inputs, setInputs] = useState(Array(algorithm.numInputs || 1).fill(''));
   const [endOfAlgo, setEndOfAlgo] = useState(false);
   const [history, setHistory] = useState([]);
-  const [futureStates, setFutureStates] = useState([]); // Changed from futureState to futureStates array
+  const [futureStates, setFutureStates] = useState([]);
   const [first_time_T_final_state, setFirstTimeTFinalState] = useState(true);
   const state = controller.getState();
 
@@ -251,16 +251,6 @@ const App = ({ algorithm }) => {
   // New function to show dialog with custom content
   const showDialogWithContent = (content) => {
     console.log('Showing dialog with content:', content);
-    // setHistory((prev) => [
-    //   ...prev,
-    //   {
-    //     state: { ...state },
-    //     inputs: [...inputs],
-    //     endOfAlgo,
-    //     first_time_T: first_time_T_final_state
-    //   },
-    // ]);
-    // setFutureState(null);
     setDialogContent(content);
     setShowDialog(true);
   };
@@ -273,6 +263,112 @@ const App = ({ algorithm }) => {
   const formatState = (stateArray) => {
     if (!Array.isArray(stateArray)) return stateArray;
     return stateArray.join(',');
+  };
+
+  // Create refs for the nodes we want to connect
+  const topInputRef = useRef(null);
+  const leftInputRef = useRef(null);
+  const rhoNodeRef = useRef(null);
+  const rightResultRef = useRef(null);
+  const piNodeRef = useRef(null);
+  const initialStateNodeRef = useRef(null);
+  const finalStateNodeRef = useRef(null);
+  const firstFChainNodeRef = useRef(null);
+  const lastFChainNodeRef = useRef(null);
+  const tNodeRef = useRef(null);
+  
+  // State for arrow coordinates
+  const [arrowCoords, setArrowCoords] = useState({
+    input_to_rho: { startX: 0, startY: 0, endX: 0, endY: 0 },
+    pi_to_result: { startX: 0, startY: 0, endX: 0, endY: 0 },
+    rho_to_fchain: { startX: 0, startY: 0, endX: 0, endY: 0 },
+    fchain_to_pi: { startX: 0, startY: 0, endX: 0, endY: 0 }
+  });
+
+  useEffect(() => {
+    const calculateArrowCoordinates = () => {
+      if (!topInputRef.current || !rhoNodeRef.current || !piNodeRef.current || !rightResultRef.current) return;
+      
+      const containerRect = document.querySelector('.flex-1').getBoundingClientRect();
+      
+      // Get element positions
+      const topInputRect = topInputRef.current.getBoundingClientRect();
+      const rhoRect = rhoNodeRef.current.getBoundingClientRect();
+      const piRect = piNodeRef.current.getBoundingClientRect();
+      const rightResultRect = rightResultRef.current.getBoundingClientRect();
+      
+      // Calculate coordinates relative to container
+      const input_to_rho = {
+        startX: topInputRect.left - containerRect.left + topInputRect.width/2,
+        startY: topInputRect.top - containerRect.top + topInputRect.height,
+        endX: rhoRect.left - containerRect.left + rhoRect.width/2,
+        endY: rhoRect.top - containerRect.top
+      };
+      
+      const pi_to_result = {
+        startX: piRect.left - containerRect.left + piRect.width/2,
+        startY: piRect.top - containerRect.top,
+        endX: rightResultRect.left - containerRect.left,
+        endY: rightResultRect.top - containerRect.top + rightResultRect.height/2
+      };
+      
+      // Initialize with default values
+      let rho_to_fchain = { startX: 0, startY: 0, endX: 0, endY: 0 };
+      let fchain_to_pi = { startX: 0, startY: 0, endX: 0, endY: 0 };
+      
+      // Calculate coordinates for rho to first F chain node
+      if (initialStateNodeRef.current && state.step >= 2) {
+        const initialStateRect = initialStateNodeRef.current.getBoundingClientRect();
+        rho_to_fchain = {
+          startX: initialStateRect.left - containerRect.left + initialStateRect.width/2,
+          startY: initialStateRect.top - containerRect.top + initialStateRect.height,
+          endX: (firstFChainNodeRef.current ? 
+                 firstFChainNodeRef.current.getBoundingClientRect().left - containerRect.left + 25 : 
+                 (tNodeRef.current ? 
+                   tNodeRef.current.getBoundingClientRect().left - containerRect.left + 25 : 0)),
+          endY: (firstFChainNodeRef.current ? 
+                 firstFChainNodeRef.current.getBoundingClientRect().top - containerRect.top + 25 : 
+                 (tNodeRef.current ? 
+                   tNodeRef.current.getBoundingClientRect().top - containerRect.top + 25 : 0))
+        };
+      }
+      
+      // Calculate coordinates for last F chain node to pi
+      if (finalStateNodeRef.current && state.step >= 3.5) {
+        const finalStateRect = finalStateNodeRef.current.getBoundingClientRect();
+        fchain_to_pi = {
+          startX: finalStateRect.left - containerRect.left + finalStateRect.width/2,
+          startY: finalStateRect.top - containerRect.top + finalStateRect.height,
+          endX: piRect.left - containerRect.left + piRect.width/2,
+          endY: piRect.top - containerRect.top + piRect.height
+        };
+      }
+      
+      setArrowCoords({ 
+        input_to_rho, 
+        pi_to_result,
+        rho_to_fchain,
+        fchain_to_pi
+      });
+    };
+    
+    // Calculate initially and whenever the component updates
+    setTimeout(calculateArrowCoordinates, 100);
+    window.addEventListener('resize', calculateArrowCoordinates);
+    
+    return () => window.removeEventListener('resize', calculateArrowCoordinates);
+  }, [renderTrigger, inputs.some(Boolean), state.step]);
+
+  // Function to determine the first node in the F chain
+  const getFirstFChainNode = () => {
+    if (state.step >= 2) {
+      if (state.showT && state.fNodes.length === 0) {
+        return tNodeRef;
+      } else if (state.fNodes.length > 0) {
+        return firstFChainNodeRef;
+      }
+    }
+    return null;
   };
 
   return (
@@ -321,7 +417,8 @@ const App = ({ algorithm }) => {
             <div className="flex items-center justify-center mb-16">
               <div className="flex items-center">
                 <StateRect 
-                color='blue'
+                  ref={topInputRef}
+                  color='blue'
                   state={displayInput} 
                   onClick={() => showDialogWithContent({ title: 'Input', values: { input: displayInput } })}
                 />
@@ -333,7 +430,8 @@ const App = ({ algorithm }) => {
                 />
                 <Arrow direction="right" />
                 <StateRect 
-                showSymbol={state.step !== 4}
+                  ref={rightResultRef}
+                  showSymbol={state.step !== 4}
                   state={state.showFinalResult ? formatState(state.result) : '?'} 
                   onClick={state.showFinalResult ? () => showDialogWithContent({ title: 'Result', values: { result: formatState(state.result) } }) : null}
                 />
@@ -345,12 +443,14 @@ const App = ({ algorithm }) => {
                 <div className="absolute left-8 top-20">
                   <div className="flex flex-col items-center">
                     <StateRect 
-                    color='blue'
+                      ref={leftInputRef}
+                      color='blue'
                       state={displayInput} 
                       onClick={() => showDialogWithContent({ title: 'Input', values: { input: displayInput } })}
                     />
                     <Arrow direction="down" />
                     <Node
+                      ref={rhoNodeRef}
                       label="ρ"
                       onClick={handlePClick}
                       highlight={highlightButton === 'p'}
@@ -358,8 +458,8 @@ const App = ({ algorithm }) => {
                     <Arrow direction="down" />
                     {state.showInitialState ? (
                       <StateRect 
-                      // showSymbol={state.step !== 1}
-                      color='green'
+                        ref={initialStateNodeRef}
+                        color='green'
                         state={formatState(state.initialState)} 
                         onClick={() => showDialogWithContent({ 
                           title: 'Initial State', 
@@ -378,12 +478,13 @@ const App = ({ algorithm }) => {
                 <div className="absolute right-8 top-20">
                   <div className="flex flex-col items-center">
                     <StateRect 
-                    showSymbol={state.step !== 4}
+                      showSymbol={state.step !== 4}
                       state={state.showFinalResult ? formatState(state.result) : '?'} 
                       onClick={state.showFinalResult ? () => showDialogWithContent({ title: 'Result', values: { result: formatState(state.result) } }) : null}
                     />
                     <Arrow direction="up" />
                     <Node
+                      ref={piNodeRef}
                       label="π"
                       onClick={handlePiClick}
                       highlight={highlightButton === 'pi'}
@@ -391,7 +492,7 @@ const App = ({ algorithm }) => {
                     <Arrow direction="up" />
                     {state.step >= 3.5 ? (
                       <StateRect 
-                        
+                        ref={finalStateNodeRef}
                         color='red'
                         state={formatState(state.fNodes[state.fNodes.length - 1])} 
                         onClick={() => {
@@ -409,117 +510,159 @@ const App = ({ algorithm }) => {
                     )}
                   </div>
                 </div>
+                
+                {/* Existing diagonal arrows */}
+                {topInputRef.current && rhoNodeRef.current && (
+                  <Arrow 
+                    direction="custom" 
+                    startX={arrowCoords.input_to_rho.startX-50}
+                    startY={arrowCoords.input_to_rho.startY-85}
+                    endX={arrowCoords.input_to_rho.endX+20}
+                    endY={arrowCoords.input_to_rho.endY-150}
+                    style={{ zIndex: 10 }}
+                  />
+                )}
+                
+                {state.step>=4 && piNodeRef.current && rightResultRef.current && (
+                  <Arrow 
+                    direction="custom" 
+                    startX={arrowCoords.pi_to_result.startX-20}
+                    startY={arrowCoords.pi_to_result.startY-155}
+                    endX={arrowCoords.pi_to_result.endX+40}
+                    endY={arrowCoords.pi_to_result.endY-75}
+                    style={{ zIndex: 10 }}
+                  />
+                )}
+
+                {/* New arrow from initial state (ρ result) to first F chain node */}
+                {state.step >= 2 && initialStateNodeRef.current && (firstFChainNodeRef.current || tNodeRef.current) && (
+                  <Arrow 
+                    direction="custom" 
+                    startX={arrowCoords.rho_to_fchain.startX-15}
+                    startY={arrowCoords.rho_to_fchain.startY-60}
+                    endX={arrowCoords.rho_to_fchain.endX-140}
+                    endY={arrowCoords.rho_to_fchain.endY-80}
+                    style={{ zIndex: 10 }}
+                  />
+                )}
+
+                {/* New arrow from last F chain node to π node */}
+                {state.step >= 3.5 && finalStateNodeRef.current && piNodeRef.current && (
+                  <Arrow 
+                    direction="custom" 
+                    startX={arrowCoords.fchain_to_pi.startX-60}
+                    startY={arrowCoords.fchain_to_pi.startY+10}
+                    endX={arrowCoords.fchain_to_pi.endX-15}
+                    endY={arrowCoords.fchain_to_pi.endY+5}
+                    style={{ zIndex: 10 }}
+                  />
+                )}
 
                 {(state.step >= 2 || state.showT) && (
                   <div className="flex justify-center items-center mt-70 relative">
-                  <div className="flex items-center overflow-x-auto" style={{ scrollbarWidth: 'thin', msOverflowStyle: 'none' }} id="nodeContainer">
-                    <div className="flex items-center">
-                      {state.step >= 2 && (
-                        <>
-                          <StateRect 
-                            color='green'
-                            state={formatState(state.initialState)} 
-                            onClick={() => showDialogWithContent({ 
-                              title: 'Initial State', 
-                              values: { 
-                                inputs: formatState(inputs.filter(Boolean)),
-                                state: formatState(state.initialState)
-                              } 
-                            })}
-                          />
-                          <Arrow direction="right" />
-                        </>
-                      )}
-                      <div className="flex items-center space-x-0 min-w-max">
-                      {state.fNodes.map((stateNode, index) => (
-                        <React.Fragment key={index}>
-                          <Node
-                            label="F"
-                            // onClick={() => {
-                            //   showDialogWithContent({ 
-                            //     title: `Node State ${index + 1}`, 
-                            //     values: { 
-                            //       state: formatState(stateNode)
-                            //     } 
-                            //   });
-                            // }}
-                          />
-                          <Arrow direction="right" />
-                          <StateRect 
-                            color='yellow'
-                            state={formatState(stateNode)} 
-                            onClick={() => {
-                              showDialogWithContent({ 
-                                title: `Node State ${index + 1}`, 
-                                values: { 
-                                  state: formatState(stateNode)
-                                } 
-                              });
-                            }}
-                          />
-                          {index < state.fNodes.length - 1 || state.showT || shouldShowIdentityNode ? (
-                            <Arrow direction="right" />
-                          ) : null}
-                        </React.Fragment>
-                      ))}
-                      </div>
-                      <div className="flex items-center space-x-0 min-w-max">
-                      {state.showT && (
-                        <>
-                        {/* T node */}
-                          <Node
-                            label="T"
-                            onClick={handleTClick}
-                            highlight={highlightButton === 't'}
-                          />
-                          <Arrow direction="right" />
-                          {state.step < 3.5 ? (
-                            <StateRect state="?" showSymbol={true}/>
-                          ) : (
+                    <div className="flex items-center overflow-x-auto" style={{ scrollbarWidth: 'thin', msOverflowStyle: 'none' }} id="nodeContainer">
+                      <div className="flex items-center">
+                        {state.step >= 2 && (
+                          <>
                             <StateRect 
-                              state={formatState(state.fNodes[state.fNodes.length - 1])} 
-                              onClick={() => {
-                                const lastNode = state.fNodes[state.fNodes.length - 1];
-                                showDialogWithContent({ 
-                                  title: 'Final Node State', 
-                                  values: { 
-                                    state: formatState(lastNode)
-                                  } 
-                                });
-                              }}
+                              color='green'
+                              state={formatState(state.initialState)} 
+                              onClick={() => showDialogWithContent({ 
+                                title: 'Initial State', 
+                                values: { 
+                                  inputs: formatState(inputs.filter(Boolean)),
+                                  state: formatState(state.initialState)
+                                } 
+                              })}
                             />
+                            <Arrow direction="right" />
+                          </>
+                        )}
+                        <div className="flex items-center space-x-0 min-w-max">
+                          {state.fNodes.map((stateNode, index) => (
+                            <React.Fragment key={index}>
+                              <Node
+                                ref={index === 0 ? firstFChainNodeRef : null}
+                                label="F"
+                              />
+                              <Arrow direction="right" />
+                              <StateRect 
+                                ref={index === state.fNodes.length - 1 ? lastFChainNodeRef : null}
+                                color='yellow'
+                                state={formatState(stateNode)} 
+                                onClick={() => {
+                                  showDialogWithContent({ 
+                                    title: `Node State ${index + 1}`, 
+                                    values: { 
+                                      state: formatState(stateNode)
+                                    } 
+                                  });
+                                }}
+                              />
+                              {index < state.fNodes.length - 1 || state.showT || shouldShowIdentityNode ? (
+                                <Arrow direction="right" />
+                              ) : null}
+                            </React.Fragment>
+                          ))}
+                        </div>
+                        <div className="flex items-center space-x-0 min-w-max">
+                          {state.showT && (
+                            <>
+                              <Node
+                                ref={state.fNodes.length === 0 ? tNodeRef : null}
+                                label="T"
+                                onClick={handleTClick}
+                                highlight={highlightButton === 't'}
+                              />
+                              <Arrow direction="right" />
+                              {state.step < 3.5 ? (
+                                <StateRect state="?" showSymbol={true}/>
+                              ) : (
+                                <StateRect 
+                                  ref={finalStateNodeRef}
+                                  state={formatState(state.fNodes[state.fNodes.length - 1])} 
+                                  onClick={() => {
+                                    const lastNode = state.fNodes[state.fNodes.length - 1];
+                                    showDialogWithContent({ 
+                                      title: 'Final Node State', 
+                                      values: { 
+                                        state: formatState(lastNode)
+                                      } 
+                                    });
+                                  }}
+                                />
+                              )}
+                            </>
                           )}
-                        </>
-                      )}
+                        </div>
+                        <div className="flex items-center space-x-0 min-w-max">
+                          {shouldShowIdentityNode && !state.showT && (
+                            <>
+                              <Node
+                                label="T"
+                                onClick={handleIClick}
+                                highlight={false}
+                              /> 
+                              <Arrow direction="right" />
+                              <StateRect 
+                                color='red'
+                                state={formatState(state.fNodes[state.fNodes.length - 1])} 
+                                onClick={() => {
+                                  const lastNode = state.fNodes[state.fNodes.length - 1];
+                                  showDialogWithContent({ 
+                                    title: 'Final Node State', 
+                                    values: { 
+                                      state: formatState(lastNode)
+                                    } 
+                                  });
+                                }}
+                              />
+                            </>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-0 min-w-max">
-                      {shouldShowIdentityNode && !state.showT && (
-                        <>
-                        <Node
-                          label="T"
-                          onClick={handleIClick}
-                          highlight={false}
-                        /> 
-                        <Arrow direction="right" />
-                        <StateRect 
-                        color='red'
-                              state={formatState(state.fNodes[state.fNodes.length - 1])} 
-                              onClick={() => {
-                                const lastNode = state.fNodes[state.fNodes.length - 1];
-                                showDialogWithContent({ 
-                                  title: 'Final Node State', 
-                                  values: { 
-                                    state: formatState(lastNode)
-                                  } 
-                                });
-                              }}
-                            />
-                        </>
-                      )}
                     </div>
                   </div>
-                </div>
-                </div>
                 )}
 
                 {showDialog && dialogContent && (

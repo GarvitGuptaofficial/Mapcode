@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { useState } from 'react';
 
-export const Node = ({ label, onClick, className = '', highlight = false }) => (
+export const Node = forwardRef(({ label, onClick, className = '', highlight = false }, ref) => (
   <div
+    ref={ref}
     onClick={onClick}
     className={`h-12 w-12 rounded-full border-2 ${
       highlight ? 'border-green-500 ring-4 ring-green-300' : 'border-gray-400'
@@ -10,21 +11,24 @@ export const Node = ({ label, onClick, className = '', highlight = false }) => (
   >
     {label}
   </div>
-);
+));
 
-export const StateNode = ({ state }) => {
+export const StateNode = forwardRef(({ state }, ref) => {
   const displayState = Array.isArray(state)
     ? `[${state.join(',')}]`
     : state?.toString() || '';
 
   return (
-    <div className="h-12 rounded-full border-2 border-gray-400 flex items-center justify-center px-2">
+    <div 
+      ref={ref}
+      className="h-12 rounded-full border-2 border-gray-400 flex items-center justify-center px-2"
+    >
       {displayState}
     </div>
   );
-};
+});
 
-export const StateRect = ({ state, onClick, color = 'gray', showSymbol = false }) => {
+export const StateRect = forwardRef(({ state, onClick, color = 'gray', showSymbol = false }, ref) => {
   const colors = {
     gray: 'bg-gray-500',
     red: 'bg-red-300',
@@ -35,14 +39,14 @@ export const StateRect = ({ state, onClick, color = 'gray', showSymbol = false }
 
   return (
     <button
+      ref={ref}
       className={`h-6 w-10 rounded-md border border-black ${showSymbol ? 'bg-white text-black' : colors[color] || colors.gray} flex items-center justify-center`}
       onClick={onClick}
     >
       {showSymbol ? '?' : ''}
     </button>
   );
-};
-
+});
 
 
 
