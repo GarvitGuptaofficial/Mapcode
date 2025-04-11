@@ -13,6 +13,7 @@ export class Model {
     this.computationText = '';
     this.history = [];
     this.history.push(this.getState()); // Initialize with initial state
+    this.first_time_T_final_state = true; // Flag for first time T final state
   }
 
   setInputs(inputs) {
@@ -40,6 +41,8 @@ export class Model {
     this.showInitialState = false;
     this.showFinalResult = false;
     this.computationText = '';
+    this.history = []; // Clear history
+    this.first_time_T_final_state = true; // Reset flag
   }
 
   setStep(step) {
@@ -89,12 +92,20 @@ export class Model {
     console.log('Current state:', this.getState());
   }
 
+  setFirstTimeTFinalState(value) {
+    this.first_time_T_final_state = value;
+  }
+
+    getFirstTimeTFinalState() {
+    return this.first_time_T_final_state;
+  }
+
   undo() {
     console.log('Undoing to previous state, Current History length:', this.history.length);
     if (this.history.length > 1) { // Leave at least the initial state
       this.history.pop(); // Remove current state
       const previousState = this.history[this.history.length - 1]; // Get previous state
-      
+      console.log('Previous state:', previousState);
       if (previousState) {
         // Copy previous state properties
         this.inputs = [...previousState.inputs];
@@ -106,7 +117,7 @@ export class Model {
         this.showInitialState = previousState.showInitialState;
         this.showFinalResult = previousState.showFinalResult;
         this.computationText = previousState.computationText;
-        
+        this.first_time_T_final_state = previousState.first_time_T_final_state; // Restore flag
         console.log('Undone to step:', this.step, 'History length:', this.history.length);
       }
     } else {
@@ -177,6 +188,7 @@ export class Model {
       computationText: this.computationText,
       algorithmName: this.config.name,
       algorithm: this.config, // Include the full config object
+      first_time_T_final_state: this.first_time_T_final_state // Include the flag
     };
   }
 }

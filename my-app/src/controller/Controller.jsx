@@ -6,13 +6,12 @@ export class Controller {
   constructor(config) {
     console.log('Initializing controller with config:', config.name);
     this.model = new Model(config);
-    this.first_time_T_final_state = true; // Move it into the class
+    
   }
   
 
   handleInputChange(inputs) {
-    // Reset transition state
-    this.first_time_T_final_state = true;
+    this.model.setFirstTimeTFinalState(true); // Reset this flag on input change
     console.log('Handling input change:', inputs);
     
     // Pass all inputs to the model
@@ -55,7 +54,6 @@ export class Controller {
   handleTClick() {
     const state = this.model.getState();
     console.log('handleTClick called, current step:', state.step);
-    
     if (state.step === 2 && state.fNodes.length === 0) {
       // First transition from initial state
       const initialState = state.initialState;
@@ -69,23 +67,31 @@ export class Controller {
       this.model.setStep(3);
       this.model.saveState(); // Save state after all updates
       console.log('Updated step to 3, first transition:', firstTransition);
-    } else if (state.step === 3) {
+    
+    }
+    else if (state.step === 3) {
       // Subsequent transitions
       const lastState = state.fNodes[state.fNodes.length - 1];
       const nextState = this.model.calculateNextState(...(Array.isArray(lastState) ? lastState : [lastState]));
       
-      if(this.first_time_T_final_state){ // Use class member
+      // if(this.first_time_T_final_state){ // Use class member
         // console.log('asdhfloarhuefuerhocviuewoirfuvhioefuhviohef');
         this.model.setFNodes([...state.fNodes, nextState]);
-      }
-      console.log('value of first_time_T_final_state:', this.first_time_T_final_state);
+      // }
+      console.log('value of first_time_T_final_state:', this.model.getFirstTimeTFinalState());
       // Generate computation text
       let computationText = `Iteration ${state.fNodes.length + 1}: F(${Array.isArray(lastState) ? lastState.join(',') : lastState}) = (${Array.isArray(nextState) ? nextState.join(',') : nextState})`;
       this.model.setComputationText(computationText);
       
       // Check for fixed point using algorithm's termination condition
-      const reachedFixedPoint = this.model.checkTerminationCondition(nextState);
-      
+      let cond_saving=false;
+      let reachedFixedPoint = this.model.checkTerminationCondition(nextState);
+      if (reachedFixedPoint && this.model.getFirstTimeTFinalState()) { // Use class member
+        reachedFixedPoint = false; // Reset to false to avoid infinite loop
+        this.model.setFirstTimeTFinalState(false); // Use class member
+        console.log('Fixed point reached, but first_time_T_final_state is true, not updating.');
+        cond_saving=true;
+      } 
      if (reachedFixedPoint) {
         this.model.setShowT(false);
         this.model.setStep(3.5);
@@ -93,7 +99,7 @@ export class Controller {
         this.model.setResult(result);
         console.log('Reached fixed point, result:', result);
       } else {
-        this.setFirstTimeTFinalState(true); // Use class member
+        // this.setFirstTimeTFinalState(true); // Use class member
         console.log('Next state:', nextState);
       }
 
@@ -101,25 +107,24 @@ export class Controller {
       // if(this.first_time_T_final_state){ // Use class member
         // this.model.saveState(); // Save state after all updates
       // }
+      if (cond_saving) {
+        this.model.setFirstTimeTFinalState(true);
+      }
       this.model.saveState(); // Save state after all updates
+      if(cond_saving){
+       this.model.setFirstTimeTFinalState(false);
+      }
     }
   }
 
   // Add a method to set the first_time_T_final_state directly
-  setFirstTimeTFinalState(value) {
-    this.first_time_T_final_state = value;
-  }
+
 
   // Update the undo method
   undo() {
-    this.first_time_T_final_state = true; // Reset this flag on undo
     this.model.undo();
   }
 
-  // Add a method to get the first_time_T_final_state
-  getFirstTimeTFinalState() {
-    return this.first_time_T_final_state;
-  }
 
   handlePiClick() {
     const state = this.model.getState();

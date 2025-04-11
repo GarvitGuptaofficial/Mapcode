@@ -11,7 +11,7 @@ const App = ({ algorithm }) => {
   const [endOfAlgo, setEndOfAlgo] = useState(false);
   const [history, setHistory] = useState([]);
   const [futureStates, setFutureStates] = useState([]);
-  const [first_time_T_final_state, setFirstTimeTFinalState] = useState(true);
+  // const [first_time_T_final_state, setFirstTimeTFinalState] = useState(true);
   const state = controller.getState();
 
   useEffect(() => {
@@ -38,8 +38,7 @@ const App = ({ algorithm }) => {
       {
         state: { ...state },
         inputs: [...inputs],
-        endOfAlgo,
-        first_time_T: first_time_T_final_state
+        endOfAlgo
       },
       ...prevFutureStates // Add to beginning of array
     ]);
@@ -57,11 +56,11 @@ const App = ({ algorithm }) => {
     controller.model.showInitialState = previousState.state.showInitialState;
     controller.model.showFinalResult = previousState.state.showFinalResult;
     controller.model.computationText = previousState.state.computationText;
-    
+    controller.model.first_time_T_final_state = previousState.state.first_time_T_final_state;
     // Update the app's state variables
     setInputs(previousState.inputs);
     setEndOfAlgo(previousState.endOfAlgo);
-    setFirstTimeTFinalState(previousState.first_time_T || true);
+    // setFirstTimeTFinalState(previousState.first_time_T || true);
     setHistory(newHistory);
     
     // Force a render update
@@ -84,8 +83,7 @@ const App = ({ algorithm }) => {
       {
         state: { ...state },
         inputs: [...inputs],
-        endOfAlgo,
-        first_time_T: first_time_T_final_state
+        endOfAlgo
       },
     ]);
   
@@ -99,10 +97,10 @@ const App = ({ algorithm }) => {
     controller.model.showInitialState = nextFutureState.state.showInitialState;
     controller.model.showFinalResult = nextFutureState.state.showFinalResult;
     controller.model.computationText = nextFutureState.state.computationText;
-    
+    controller.model.first_time_T_final_state = nextFutureState.state.first_time_T_final_state;
     setInputs(nextFutureState.inputs);
     setEndOfAlgo(nextFutureState.endOfAlgo);
-    setFirstTimeTFinalState(nextFutureState.first_time_T || true);
+    // setFirstTimeTFinalState(nextFutureState.first_time_T || true);
     
     // Update future states
     setFutureStates(remainingFutureStates);
@@ -123,6 +121,7 @@ const App = ({ algorithm }) => {
     controller.model.showInitialState = false;
     controller.model.showFinalResult = false;
     controller.model.computationText = '';
+    controller.model.first_time_T_final_state = true; // Reset flag
 
     // Reset local state
     setInputs(Array(algorithm.numInputs || 1).fill(''));
@@ -151,8 +150,7 @@ const App = ({ algorithm }) => {
       {
         state: { ...state },
         inputs: [...inputs],
-        endOfAlgo,
-        first_time_T: first_time_T_final_state
+        endOfAlgo
       },
     ]);
     setFutureStates([]); // Clear future states on new action
@@ -172,8 +170,7 @@ const App = ({ algorithm }) => {
       {
         state: { ...state },
         inputs: [...inputs],
-        endOfAlgo,
-        first_time_T: first_time_T_final_state
+        endOfAlgo
       },
     ]);
     setFutureStates([]); // Clear future states on new action
@@ -187,8 +184,7 @@ const App = ({ algorithm }) => {
       {
         state: { ...state },
         inputs: [...inputs],
-        endOfAlgo,
-        first_time_T: first_time_T_final_state
+        endOfAlgo
       },
     ]);
     setFutureStates([]); // Clear future states on new action
@@ -204,8 +200,7 @@ const App = ({ algorithm }) => {
       {
         state: { ...state },
         inputs: [...inputs],
-        endOfAlgo,
-        first_time_T: first_time_T_final_state
+        endOfAlgo
       },
     ]);
     setFutureStates([]); // Clear future states on new action
@@ -221,8 +216,7 @@ const App = ({ algorithm }) => {
       {
         state: { ...state },
         inputs: [...inputs],
-        endOfAlgo,
-        first_time_T: first_time_T_final_state
+        endOfAlgo
       },
     ]);
     setFutureStates([]); // Clear future states on new action
@@ -238,9 +232,8 @@ const App = ({ algorithm }) => {
       {
         state: { ...state },
         inputs: [...inputs],
-        endOfAlgo,
-        first_time_T: first_time_T_final_state
-      },
+        endOfAlgo
+            },
     ]);
     setFutureStates([]); // Clear future states on new action
     controller.handleTClick();
@@ -599,7 +592,7 @@ const App = ({ algorithm }) => {
                                   });
                                 }}
                               />
-                              {index < state.fNodes.length - 1 || state.showT || shouldShowIdentityNode ? (
+                              {index < state.fNodes.length - 1 || state.showT  ? (
                                 <Arrow direction="right" />
                               ) : null}
                             </React.Fragment>
@@ -635,7 +628,7 @@ const App = ({ algorithm }) => {
                             </>
                           )}
                         </div>
-                        <div className="flex items-center space-x-0 min-w-max">
+                        {/* <div className="flex items-center space-x-0 min-w-max">
                           {shouldShowIdentityNode && !state.showT && (
                             <>
                               <Node
@@ -659,7 +652,7 @@ const App = ({ algorithm }) => {
                               />
                             </>
                           )}
-                        </div>
+                        </div> */}
                       </div>
                     </div>
                   </div>
