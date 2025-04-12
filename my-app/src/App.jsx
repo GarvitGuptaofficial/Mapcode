@@ -292,17 +292,18 @@ const App = ({ algorithm }) => {
       
       // Calculate coordinates relative to container
       const input_to_rho = {
-        startX: topInputRect.left - containerRect.left + topInputRect.width/2,
-        startY: topInputRect.top - containerRect.top + topInputRect.height,
-        endX: rhoRect.left - containerRect.left + rhoRect.width/2,
-        endY: rhoRect.top - containerRect.top
+        startX: topInputRect.left - containerRect.left - topInputRect.width/2,
+        startY: topInputRect.top - containerRect.top - 2.5*topInputRect.height,
+        endX: rhoRect.left  -containerRect.left ,
+        endY: rhoRect.top - rhoRect.height -rhoRect.height/2
       };
+      // print('input_to_rho:', input_to_rho);
       
       const pi_to_result = {
-        startX: piRect.left - containerRect.left + piRect.width/2,
-        startY: piRect.top - containerRect.top,
-        endX: rightResultRect.left - containerRect.left,
-        endY: rightResultRect.top - containerRect.top + rightResultRect.height/2
+        startX: piRect.left - containerRect.left,
+        startY: piRect.top - piRect.height-piRect.height/2,
+        endX: rightResultRect.left - containerRect.left + rightResultRect.width/2,
+        endY: rightResultRect.top - containerRect.top - 2.5*rightResultRect.height
       };
       
       // Initialize with default values
@@ -310,15 +311,15 @@ const App = ({ algorithm }) => {
       let fchain_to_pi = { startX: 0, startY: 0, endX: 0, endY: 0 };
       
       // Calculate coordinates for rho to first F chain node
-      if (initialStateNodeRef.current && state.step >= 2) {
-        const initialStateRect = initialStateNodeRef.current.getBoundingClientRect();
+      if (rhoNodeRef.current && state.step >= 2) {
+        // const rhoRect = initialStateNodeRef.current.getBoundingClientRect();
         rho_to_fchain = {
-          startX: initialStateRect.left - containerRect.left + initialStateRect.width/2,
-          startY: initialStateRect.top - containerRect.top + initialStateRect.height,
+          startX: rhoRect.left - containerRect.left,
+          startY: rhoRect.top - rhoRect.height +rhoRect.height/2,
           endX: (firstFChainNodeRef.current ? 
-                 firstFChainNodeRef.current.getBoundingClientRect().left - containerRect.left + 25 : 
-                 (tNodeRef.current ? 
-                   tNodeRef.current.getBoundingClientRect().left - containerRect.left + 25 : 0)),
+            firstFChainNodeRef.current.getBoundingClientRect().left - containerRect.left + 25 : 
+            (tNodeRef.current ? 
+              tNodeRef.current.getBoundingClientRect().left - containerRect.left + 25 : 0)),
           endY: (firstFChainNodeRef.current ? 
                  firstFChainNodeRef.current.getBoundingClientRect().top - containerRect.top + 25 : 
                  (tNodeRef.current ? 
@@ -327,13 +328,13 @@ const App = ({ algorithm }) => {
       }
       
       // Calculate coordinates for last F chain node to pi
-      if (finalStateNodeRef.current && state.step >= 3.5) {
-        const finalStateRect = finalStateNodeRef.current.getBoundingClientRect();
+      if (lastFChainNodeRef.current && state.step >= 3.5) {
+        const finalStateRect = lastFChainNodeRef.current.getBoundingClientRect();
         fchain_to_pi = {
-          startX: finalStateRect.left - containerRect.left + finalStateRect.width/2,
-          startY: finalStateRect.top - containerRect.top + finalStateRect.height,
-          endX: piRect.left - containerRect.left + piRect.width/2,
-          endY: piRect.top - containerRect.top + piRect.height
+          startX: finalStateRect.left - containerRect.left + 1.5*finalStateRect.width,
+          startY: finalStateRect.top - containerRect.top -3.5* finalStateRect.height,
+          endX: piRect.left - containerRect.left+ piRect.width/2,
+        endY: piRect.top - piRect.height+piRect.height/2,
         };
       }
       
@@ -433,23 +434,23 @@ const App = ({ algorithm }) => {
 
             {state.step >= 1 && (
               <div>
-                <div className="absolute left-8 top-20">
+                <div className="absolute left-30 top-40">
                   <div className="flex flex-col items-center">
-                    <StateRect 
+                    {/* <StateRect 
                       ref={leftInputRef}
                       color='blue'
                       state={displayInput} 
                       onClick={() => showDialogWithContent({ title: 'Input', values: { input: displayInput } })}
                     />
-                    <Arrow direction="down" />
+                    <Arrow direction="down" /> */}
                     <Node
                       ref={rhoNodeRef}
                       label="ρ"
                       onClick={handlePClick}
                       highlight={highlightButton === 'p'}
                     />
-                    <Arrow direction="down" />
-                    {state.showInitialState ? (
+                    {/* <Arrow direction="down" /> */}
+                    {/* {state.showInitialState ? (
                       <StateRect 
                         ref={initialStateNodeRef}
                         color='green'
@@ -464,26 +465,26 @@ const App = ({ algorithm }) => {
                       />
                     ) : (
                       <StateRect state="?" showSymbol={true}/>
-                    )}
+                    )} */}
                   </div>
                 </div>
 
-                <div className="absolute right-8 top-20">
+                <div className="absolute right-30 top-40">
                   <div className="flex flex-col items-center">
-                    <StateRect 
+                    {/* <StateRect 
                       showSymbol={state.step !== 4}
                       state={state.showFinalResult ? formatState(state.result) : '?'} 
                       onClick={state.showFinalResult ? () => showDialogWithContent({ title: 'Result', values: { result: formatState(state.result) } }) : null}
                     />
-                    <Arrow direction="up" />
+                    <Arrow direction="up" /> */}
                     <Node
                       ref={piNodeRef}
                       label="π"
                       onClick={handlePiClick}
                       highlight={highlightButton === 'pi'}
                     />
-                    <Arrow direction="up" />
-                    {state.step >= 3.5 ? (
+                    {/* <Arrow direction="up" /> */}
+                    {/* {state.step >= 3.5 ? (
                       <StateRect 
                         ref={finalStateNodeRef}
                         color='red'
@@ -496,11 +497,12 @@ const App = ({ algorithm }) => {
                               state: formatState(lastNode)
                             } 
                           });
-                        }}
+                        }
+                      }
                       />
                     ) : (
                       <StateRect state="?" showSymbol={true}/>
-                    )}
+                    )} */}
                   </div>
                 </div>
                 
@@ -508,10 +510,10 @@ const App = ({ algorithm }) => {
                 {topInputRef.current && rhoNodeRef.current && (
                   <Arrow 
                     direction="custom" 
-                    startX={arrowCoords.input_to_rho.startX-50}
-                    startY={arrowCoords.input_to_rho.startY-85}
-                    endX={arrowCoords.input_to_rho.endX+20}
-                    endY={arrowCoords.input_to_rho.endY-150}
+                    startX={arrowCoords.input_to_rho.startX}
+                    startY={arrowCoords.input_to_rho.startY}
+                    endX={arrowCoords.input_to_rho.endX}
+                    endY={arrowCoords.input_to_rho.endY}
                     style={{ zIndex: 10 }}
                   />
                 )}
@@ -519,20 +521,20 @@ const App = ({ algorithm }) => {
                 {state.step>=4 && piNodeRef.current && rightResultRef.current && (
                   <Arrow 
                     direction="custom" 
-                    startX={arrowCoords.pi_to_result.startX-20}
-                    startY={arrowCoords.pi_to_result.startY-155}
-                    endX={arrowCoords.pi_to_result.endX+40}
-                    endY={arrowCoords.pi_to_result.endY-75}
+                    startX={arrowCoords.pi_to_result.startX}
+                    startY={arrowCoords.pi_to_result.startY}
+                    endX={arrowCoords.pi_to_result.endX}
+                    endY={arrowCoords.pi_to_result.endY}
                     style={{ zIndex: 10 }}
                   />
                 )}
 
                 {/* New arrow from initial state (ρ result) to first F chain node */}
-                {state.step >= 2 && initialStateNodeRef.current && (firstFChainNodeRef.current || tNodeRef.current) && (
+                {state.step >= 2 && rhoNodeRef.current && (firstFChainNodeRef.current || tNodeRef.current) && (
                   <Arrow 
                     direction="custom" 
-                    startX={arrowCoords.rho_to_fchain.startX-15}
-                    startY={arrowCoords.rho_to_fchain.startY-60}
+                    startX={arrowCoords.rho_to_fchain.startX}
+                    startY={arrowCoords.rho_to_fchain.startY}
                     endX={arrowCoords.rho_to_fchain.endX-140}
                     endY={arrowCoords.rho_to_fchain.endY-80}
                     style={{ zIndex: 10 }}
@@ -540,7 +542,7 @@ const App = ({ algorithm }) => {
                 )}
 
                 {/* New arrow from last F chain node to π node */}
-                {state.step >= 3.5 && finalStateNodeRef.current && piNodeRef.current && (
+                {state.step >= 3.5 && lastFChainNodeRef.current && piNodeRef.current && (
                   <Arrow 
                     direction="custom" 
                     startX={arrowCoords.fchain_to_pi.startX-60}
@@ -552,7 +554,7 @@ const App = ({ algorithm }) => {
                 )}
 
                 {(state.step >= 2 || state.showT) && (
-                  <div className="flex justify-center items-center mt-70 relative">
+                  <div className="flex justify-center items-center mt-100 relative">
                     <div className="flex items-center overflow-x-auto" style={{ scrollbarWidth: 'thin', msOverflowStyle: 'none' }} id="nodeContainer">
                       <div className="flex items-center">
                         {state.step >= 2 && (
@@ -704,7 +706,7 @@ const App = ({ algorithm }) => {
                 : '')}
         </div>
       </div>
-    </div>
+     </div>
   );
 };
 
