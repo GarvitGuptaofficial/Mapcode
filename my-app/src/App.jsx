@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Controller } from './controller/Controller';
-import { Node, StateNode, StateRect, Arrow } from './view/Node';
+import { StateRect, Edge, DiagonalEdge } from './view/Node';
 
 const App = ({ algorithm }) => {
   const [controller] = useState(() => new Controller(algorithm));
@@ -11,7 +11,6 @@ const App = ({ algorithm }) => {
   const [endOfAlgo, setEndOfAlgo] = useState(false);
   const [history, setHistory] = useState([]);
   const [futureStates, setFutureStates] = useState([]);
-  // const [first_time_T_final_state, setFirstTimeTFinalState] = useState(true);
   const state = controller.getState();
 
   useEffect(() => {
@@ -19,7 +18,7 @@ const App = ({ algorithm }) => {
     setInputs(Array(algorithm.numInputs || 1).fill(''));
     setEndOfAlgo(false);
     setHistory([]);
-    setFutureStates([]); // Reset future states array
+    setFutureStates([]);
     setRenderTrigger((prev) => prev + 1);
   }, [algorithm, controller]);
 
@@ -40,7 +39,7 @@ const App = ({ algorithm }) => {
         inputs: [...inputs],
         endOfAlgo
       },
-      ...prevFutureStates // Add to beginning of array
+      ...prevFutureStates
     ]);
   
     const newHistory = [...history];
@@ -57,13 +56,11 @@ const App = ({ algorithm }) => {
     controller.model.showFinalResult = previousState.state.showFinalResult;
     controller.model.computationText = previousState.state.computationText;
     controller.model.first_time_T_final_state = previousState.state.first_time_T_final_state;
-    // Update the app's state variables
+    
     setInputs(previousState.inputs);
     setEndOfAlgo(previousState.endOfAlgo);
-    // setFirstTimeTFinalState(previousState.first_time_T || true);
     setHistory(newHistory);
     
-    // Force a render update
     setRenderTrigger((prev) => prev + 1);
     console.log('State after undo:', controller.getState());
   };
@@ -73,11 +70,9 @@ const App = ({ algorithm }) => {
   
     console.log('Redo button clicked, future states available:', futureStates.length);
     
-    // Get the next future state (from the beginning of the array)
     const nextFutureState = futureStates[0];
     const remainingFutureStates = futureStates.slice(1);
     
-    // Save current state to history before applying the redo
     setHistory((prev) => [
       ...prev,
       {
@@ -98,14 +93,11 @@ const App = ({ algorithm }) => {
     controller.model.showFinalResult = nextFutureState.state.showFinalResult;
     controller.model.computationText = nextFutureState.state.computationText;
     controller.model.first_time_T_final_state = nextFutureState.state.first_time_T_final_state;
+    
     setInputs(nextFutureState.inputs);
     setEndOfAlgo(nextFutureState.endOfAlgo);
-    // setFirstTimeTFinalState(nextFutureState.first_time_T || true);
-    
-    // Update future states
     setFutureStates(remainingFutureStates);
     
-    // Force a render update
     setRenderTrigger((prev) => prev + 1);
     console.log('State after redo:', controller.getState());
   };
@@ -121,13 +113,13 @@ const App = ({ algorithm }) => {
     controller.model.showInitialState = false;
     controller.model.showFinalResult = false;
     controller.model.computationText = '';
-    controller.model.first_time_T_final_state = true; // Reset flag
+    controller.model.first_time_T_final_state = true;
 
     // Reset local state
     setInputs(Array(algorithm.numInputs || 1).fill(''));
     setEndOfAlgo(false);
     setHistory([]);
-    setFutureStates([]); // Clear future states
+    setFutureStates([]);
     setShowDialog(false);
     setDialogContent(null);
     setRenderTrigger((prev) => prev + 1);
@@ -153,7 +145,7 @@ const App = ({ algorithm }) => {
         endOfAlgo
       },
     ]);
-    setFutureStates([]); // Clear future states on new action
+    setFutureStates([]);
 
     const newInputs = [...inputs];
     newInputs[index] = value;
@@ -173,12 +165,12 @@ const App = ({ algorithm }) => {
         endOfAlgo
       },
     ]);
-    setFutureStates([]); // Clear future states on new action
+    setFutureStates([]);
     setEndOfAlgo(true);
   };
 
   const handleFClick = () => {
-    console.log('Clicked f button, current step:', state.step);
+    console.log('Clicked f edge, current step:', state.step);
     setHistory((prev) => [
       ...prev,
       {
@@ -187,14 +179,14 @@ const App = ({ algorithm }) => {
         endOfAlgo
       },
     ]);
-    setFutureStates([]); // Clear future states on new action
+    setFutureStates([]);
     controller.handleFClick();
     setEndOfAlgo(false);
     setRenderTrigger((prev) => prev + 1);
   };
 
   const handlePClick = () => {
-    console.log('Clicked ρ button, current step:', state.step);
+    console.log('Clicked ρ edge, current step:', state.step);
     setHistory((prev) => [
       ...prev,
       {
@@ -203,14 +195,14 @@ const App = ({ algorithm }) => {
         endOfAlgo
       },
     ]);
-    setFutureStates([]); // Clear future states on new action
+    setFutureStates([]);
     controller.handlePClick();
     setEndOfAlgo(false);
     setRenderTrigger((prev) => prev + 1);
   };
 
   const handlePiClick = () => {
-    console.log('Clicked π button, current step:', state.step);
+    console.log('Clicked π edge, current step:', state.step);
     setHistory((prev) => [
       ...prev,
       {
@@ -219,29 +211,28 @@ const App = ({ algorithm }) => {
         endOfAlgo
       },
     ]);
-    setFutureStates([]); // Clear future states on new action
+    setFutureStates([]);
     controller.handlePiClick();
     setEndOfAlgo(false);
     setRenderTrigger((prev) => prev + 1);
   };
 
   const handleTClick = () => {
-    console.log('Clicked T button, current step:', state.step);
+    console.log('Clicked T edge, current step:', state.step);
     setHistory((prev) => [
       ...prev,
       {
         state: { ...state },
         inputs: [...inputs],
         endOfAlgo
-            },
+      },
     ]);
-    setFutureStates([]); // Clear future states on new action
+    setFutureStates([]);
     controller.handleTClick();
     setEndOfAlgo(false);
     setRenderTrigger((prev) => prev + 1);
   };
 
-  // New function to show dialog with custom content
   const showDialogWithContent = (content) => {
     console.log('Showing dialog with content:', content);
     setDialogContent(content);
@@ -250,8 +241,6 @@ const App = ({ algorithm }) => {
 
   const displayInput = inputs.filter(Boolean).join(',');
 
-  const shouldShowIdentityNode = state.step >= 3 && !state.showT && state.fNodes.length > 0;
-
   // Function to format display of state arrays
   const formatState = (stateArray) => {
     if (!Array.isArray(stateArray)) return stateArray;
@@ -259,115 +248,60 @@ const App = ({ algorithm }) => {
   };
 
   // Create refs for the nodes we want to connect
-  const topInputRef = useRef(null);
-  const leftInputRef = useRef(null);
-  const rhoNodeRef = useRef(null);
-  const rightResultRef = useRef(null);
-  const piNodeRef = useRef(null);
-  const initialStateNodeRef = useRef(null);
-  const finalStateNodeRef = useRef(null);
-  const firstFChainNodeRef = useRef(null);
-  const lastFChainNodeRef = useRef(null);
-  const tNodeRef = useRef(null);
+  const topLeftNodeRef = useRef(null);
+  const topRightNodeRef = useRef(null);
+  const bottomLeftNodeRef = useRef(null);
+  const bottomRightNodeRef = useRef(null);
   
-  // State for arrow coordinates
-  const [arrowCoords, setArrowCoords] = useState({
-    input_to_rho: { startX: 0, startY: 0, endX: 0, endY: 0 },
-    pi_to_result: { startX: 0, startY: 0, endX: 0, endY: 0 },
-    rho_to_fchain: { startX: 0, startY: 0, endX: 0, endY: 0 },
-    fchain_to_pi: { startX: 0, startY: 0, endX: 0, endY: 0 }
-  });
+  // Calculate diagram dimensions based on content
+  // Base width for the diagram
+  const baseWidth = 500;
+  
+  // Calculate width needed for F chain (if any)
+  const fChainWidth = state.fNodes.length > 0 ? state.fNodes.length * 100 : 100;
+  
+  // Total width is the maximum of base width or F chain width plus some padding
+  const totalWidth = Math.max(baseWidth, fChainWidth + 200);
+  
+  // Calculate positions for the rectangular layout
+  const margin = 50;
+  const width = totalWidth - (2 * margin);
+  const height = 200;
+  
+  // Calculate coordinates for the rectangular structure
+  const topY = 80;
+  const bottomY = topY + height;
+  const leftX = margin;
+  const rightX = totalWidth - margin;
+  
+  // Calculate midpoints for T edge
+  const midX = (leftX + rightX) / 2;
 
-  useEffect(() => {
-    const calculateArrowCoordinates = () => {
-      if (!topInputRef.current || !rhoNodeRef.current || !piNodeRef.current || !rightResultRef.current) return;
-      
-      const containerRect = document.querySelector('.flex-1').getBoundingClientRect();
-      
-      // Get element positions
-      const topInputRect = topInputRef.current.getBoundingClientRect();
-      const rhoRect = rhoNodeRef.current.getBoundingClientRect();
-      const piRect = piNodeRef.current.getBoundingClientRect();
-      const rightResultRect = rightResultRef.current.getBoundingClientRect();
-      
-      // Calculate coordinates relative to container
-      const input_to_rho = {
-        startX: topInputRect.left - containerRect.left - topInputRect.width/2,
-        startY: topInputRect.top - containerRect.top - 2.5*topInputRect.height,
-        endX: rhoRect.left  -containerRect.left ,
-        endY: rhoRect.top - rhoRect.height -rhoRect.height/2
-      };
-      // print('input_to_rho:', input_to_rho);
-      
-      const pi_to_result = {
-        startX: piRect.left - containerRect.left,
-        startY: piRect.top - piRect.height-piRect.height/2,
-        endX: rightResultRect.left - containerRect.left + rightResultRect.width/2,
-        endY: rightResultRect.top - containerRect.top - 2.5*rightResultRect.height
-      };
-      
-      // Initialize with default values
-      let rho_to_fchain = { startX: 0, startY: 0, endX: 0, endY: 0 };
-      let fchain_to_pi = { startX: 0, startY: 0, endX: 0, endY: 0 };
-      
-      // Calculate coordinates for rho to first F chain node
-      if (rhoNodeRef.current && state.step >= 2) {
-        // const rhoRect = initialStateNodeRef.current.getBoundingClientRect();
-        rho_to_fchain = {
-          startX: rhoRect.left - containerRect.left,
-          startY: rhoRect.top - rhoRect.height +rhoRect.height/2,
-          endX: (firstFChainNodeRef.current ? 
-            firstFChainNodeRef.current.getBoundingClientRect().left - containerRect.left + 25 : 
-            (tNodeRef.current ? 
-              tNodeRef.current.getBoundingClientRect().left - containerRect.left + 25 : 0)),
-          endY: (firstFChainNodeRef.current ? 
-                 firstFChainNodeRef.current.getBoundingClientRect().top - containerRect.top + 25 : 
-                 (tNodeRef.current ? 
-                   tNodeRef.current.getBoundingClientRect().top - containerRect.top + 25 : 0))
-        };
-      }
-      
-      // Calculate coordinates for last F chain node to pi
-      if (lastFChainNodeRef.current && state.step >= 3.5) {
-        const finalStateRect = lastFChainNodeRef.current.getBoundingClientRect();
-        fchain_to_pi = {
-          startX: finalStateRect.left - containerRect.left + 1.5*finalStateRect.width,
-          startY: finalStateRect.top - containerRect.top -3.5* finalStateRect.height,
-          endX: piRect.left - containerRect.left+ piRect.width/2,
-        endY: piRect.top - piRect.height+piRect.height/2,
-        };
-      }
-      
-      setArrowCoords({ 
-        input_to_rho, 
-        pi_to_result,
-        rho_to_fchain,
-        fchain_to_pi
-      });
-    };
-    
-    // Calculate initially and whenever the component updates
-    setTimeout(calculateArrowCoordinates, 100);
-    window.addEventListener('resize', calculateArrowCoordinates);
-    
-    return () => window.removeEventListener('resize', calculateArrowCoordinates);
-  }, [renderTrigger, inputs.some(Boolean), state.step]);
+  // Check if there's valid input and step > 0 to determine if bottom edges are visible
+  const showBottomStructure = inputs.some(Boolean) && state.step > 0;
+  
+  // Calculate the dynamic width for f edge based on F chain length
+  const fEdgeWidth = state.fNodes.length > 0 
+    ? leftX + 20 + (state.fNodes.length * 100) - (leftX + 40)
+    : rightX - leftX - 40;
+  
+  // Calculate positions for the T edge
+  const tEdgeStartX = leftX + 20;
+  const tEdgeStartY = bottomY + 10; // Slightly below the bottom nodes
+  const tEdgeEndX = rightX - 20;
+  const tEdgeEndY = topY - 10; // Slightly above the top nodes
 
-  // Function to determine the first node in the F chain
-  const getFirstFChainNode = () => {
-    if (state.step >= 2) {
-      if (state.showT && state.fNodes.length === 0) {
-        return tNodeRef;
-      } else if (state.fNodes.length > 0) {
-        return firstFChainNodeRef;
-      }
-    }
-    return null;
-  };
-
+  // Calculate positions for the dynamic π edge
+  const piEdgeStartX = state.fNodes.length > 0 
+    ? leftX + 20 + (state.fNodes.length * 100) 
+    : leftX + 60;
+  const piEdgeStartY = bottomY - 5;
+  const piEdgeEndX = rightX - 5;
+  const piEdgeEndY = topY + 5;
+  
   return (
     <div className="flex">
-      <div className="flex-1 max-w-5xl mx-auto p-4">
+      <div className="flex-1 max-w-6xl mx-auto p-4">
         <div className="mb-4 flex justify-between">
           <div className="flex space-x-2">
             <button
@@ -406,307 +340,260 @@ const App = ({ algorithm }) => {
           </div>
         </div>
 
-        {inputs.some(Boolean) && (
-          <div className="relative mb-8 bg-white">
-            <div className="flex items-center justify-center mb-16">
-              <div className="flex items-center">
-                <StateRect 
-                  ref={topInputRef}
-                  color='blue'
-                  state={displayInput} 
-                  onClick={() => showDialogWithContent({ title: 'Input', values: { input: displayInput } })}
-                />
-                <Arrow direction="right" />
-                <Node
+        <div className="relative mb-8 bg-white" style={{ height: "500px", width: "100%" , transform: "translateX(200px)translateY(-15px)"}}>
+          {/* Top Rectangle Structure */}
+          <div className="absolute" style={{ top: topY, width: "100%" }}>
+            <div className="flex items-center">
+              {/* Top Left Node */}
+              {inputs.some(Boolean) && (
+                <div style={{ top:topY,position: 'absolute', left: leftX }}>
+                  <StateRect 
+                    ref={topLeftNodeRef}
+                    color='blue'
+                    state={displayInput} 
+                    onClick={() => showDialogWithContent({ title: 'Input', values: { input: displayInput } })}
+                  />
+                </div>
+              )}
+              
+              {/* Main f edge between left and right nodes - Made diagonal */}
+              {inputs.some(Boolean) && state.step<3.5 && (
+                <DiagonalEdge
                   label="f"
                   onClick={handleFClick}
                   highlight={highlightButton === 'f'}
+                  startX={leftX + 50}
+                  startY={topY+10}
+                  endX={rightX-30+(state.fNodes.length > 0 ? (state.fNodes.length * 138) : 0)}
+                  endY={topY +10}
+                  style={{}}
                 />
-                <Arrow direction="right" />
-                <StateRect 
-                  ref={rightResultRef}
-                  showSymbol={state.step !== 4}
-                  state={state.showFinalResult ? formatState(state.result) : '?'} 
-                  onClick={state.showFinalResult ? () => showDialogWithContent({ title: 'Result', values: { result: formatState(state.result) } }) : null}
+              )}
+
+              {inputs.some(Boolean) && state.step>=3.5 && (
+                <DiagonalEdge
+                  label="f"
+                  onClick={handleFClick}
+                  highlight={highlightButton === 'f'}
+                  startX={leftX + 50}
+                  startY={topY+10}
+                  endX={leftX-10  + (state.fNodes.length > 0 ? (state.fNodes.length * 138) : 0)}
+                  endY={topY +10}
+                  style={{}}
                 />
+              )}
+              
+              {/* Top Right Node */}
+              {inputs.some(Boolean) && state.step<3.5 && (
+                <div style={{ top:topY,position: 'absolute', left: rightX-20+(state.fNodes.length > 0 ? (state.fNodes.length * 138) : 0)}}>
+                  <StateRect 
+                    ref={topRightNodeRef}
+                    showSymbol={state.step !== 4}
+                    state={state.showFinalResult ? formatState(state.result) : '?'} 
+                    onClick={state.showFinalResult ? () => showDialogWithContent({ title: 'Result', values: { result: formatState(state.result) } }) : null}
+                  />
+                </div>
+              )}
+
+
+            {inputs.some(Boolean) && state.step>=3.5 && (
+                <div style={{ top:topY,position: 'absolute', left: leftX-10  + (state.fNodes.length > 0 ? (state.fNodes.length * 138) : 0)}}>
+                  <StateRect 
+                    ref={topRightNodeRef}
+                    showSymbol={state.step !== 4}
+                    state={state.showFinalResult ? formatState(state.result) : '?'} 
+                    onClick={state.showFinalResult ? () => showDialogWithContent({ title: 'Result', values: { result: formatState(state.result) } }) : null}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Bottom Structure - Only show after f is clicked (step > 0) */}
+          {showBottomStructure && (
+  <div className="absolute" style={{ top: bottomY + 100, left: leftX }}>
+    <div className="flex items-center">
+      {/* Bottom Left Node - Initially ? */}
+      <StateRect 
+        ref={bottomLeftNodeRef}
+        color={state.step >= 2 ? 'green' : 'gray'}
+        showSymbol={state.step < 2}
+        state={state.step >= 2 ? formatState(state.initialState) : '?'} 
+        onClick={state.step >= 2 ? () => showDialogWithContent({ 
+          title: 'Initial State', 
+          values: { 
+            inputs: formatState(inputs.filter(Boolean)),
+            state: formatState(state.initialState)
+          }
+        }) : null}
+      />
+      
+      {/* F Chain (shown after step 2) */}
+      {state.fNodes.length > 0 && (
+        <div className="flex items-center">
+          {state.fNodes.map((stateNode, index) => (
+            <React.Fragment key={index}>
+              <Edge
+                label="F"
+                className="w-16"
+              />
+              <StateRect 
+                color='yellow'
+                state={formatState(stateNode)} 
+                onClick={() => {
+                  showDialogWithContent({ 
+                    title: `Node State ${index + 1}`, 
+                    values: { 
+                      state: formatState(stateNode)
+                    } 
+                  });
+                }}
+              />
+            </React.Fragment>
+          ))}
+        </div>
+      )}
+      
+      {/* Bottom Right Node with ? (positioned after T edge) */}
+      {state.showT && (
+        <div style={{ position: 'absolute', left: rightX - 70 + (state.fNodes.length > 0 ? (state.fNodes.length * 138) : 0)}}>
+          <StateRect 
+            ref={bottomRightNodeRef}
+            showSymbol={true}
+            state="?" 
+          />
+        </div>
+      )}
+      
+      {/* Final Node after T (only show if there are F nodes) */}
+      {/* {state.step >= 3.5 && state.fNodes.length > 0 && (
+        <StateRect 
+          ref={bottomRightNodeRef}
+          color='red'
+          state={formatState(state.fNodes[state.fNodes.length - 1] || [])} 
+          onClick={() => {
+            const lastNode = state.fNodes[state.fNodes.length - 1];
+            showDialogWithContent({ 
+              title: 'Final Node State', 
+              values: { 
+                state: formatState(lastNode)
+              } 
+            });
+          }}
+        />
+      )} */}
+    </div>
+  </div>
+)}
+
+{showBottomStructure && state.showT && (
+  <div>
+    <DiagonalEdge
+      label="T"
+      onClick={handleTClick}
+      highlight={highlightButton === 't'}
+      startX={leftX + (state.fNodes.length > 0 ? leftX+(state.fNodes.length * 138) : leftX)}
+      startY={bottomY + 113}
+      endX={rightX - 30 + (state.fNodes.length > 0 ? (state.fNodes.length * 138) : 0)}
+      endY={bottomY + 113}
+      style={{}}
+    />
+  </div>
+)}
+
+{showBottomStructure && state.step<3.5&& (
+  <div>
+    <DiagonalEdge
+      label="π"
+      onClick={handlePiClick}
+      highlight={highlightButton === 'pi'}
+      startX={rightX  + (state.fNodes.length > 0 ? (state.fNodes.length * 138) : 0)}
+      startY={bottomY + 90}
+      endX={rightX  + (state.fNodes.length > 0 ? (state.fNodes.length * 138) : 0)}
+      endY={topY + 110}
+      style={{}}
+    />
+  </div>
+)}
+
+{showBottomStructure && state.step>=3.5&& (
+  <div>
+    <DiagonalEdge
+      label="π"
+      onClick={handlePiClick}
+      highlight={highlightButton === 'pi'}
+      startX={leftX+10+(state.fNodes.length > 0 ? (state.fNodes.length * 138) : 0)}
+      startY={bottomY + 90}
+      endX={leftX+10  + (state.fNodes.length > 0 ? (state.fNodes.length * 138) : 0)}
+      endY={topY + 110}
+      style={{}}
+    />
+  </div>
+)}
+
+
+          {/* Diagonal ρ Edge - from top left to bottom left - only show after f is clicked */}
+          {showBottomStructure && (
+            <div>
+              <DiagonalEdge
+                label="ρ"
+                onClick={handlePClick}
+                highlight={highlightButton === 'p'}
+                startX={leftX + 20}
+                startY={topY + 110}
+                endX={leftX + 20}
+                endY={bottomY + 90}
+                style={{}}
+              />
+            </div>
+          )}
+
+
+          {/* Dialog */}
+          {showDialog && dialogContent && (
+            <div className="absolute left-0 right-0 mt-15 flex justify-center">
+              <div className="bg-white p-4 rounded-lg shadow-lg border-2 border-gray-400">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-lg font-semibold">{dialogContent.title || 'Information'}</h3>
+                  <button
+                    className="cursor-pointer"
+                    onClick={() => {
+                      console.log('Closing dialog');
+                      setShowDialog(false);
+                      setDialogContent(null);
+                    }}
+                  >
+                    X
+                  </button>
+                </div>
+                {dialogContent.values && Object.entries(dialogContent.values).map(([key, value]) => (
+                  <p key={key} className="text-lg">{key}: {value}</p>
+                ))}
               </div>
             </div>
+          )}
+        </div>
 
-            {state.step >= 1 && (
-              <div>
-                <div className="absolute left-30 top-40">
-                  <div className="flex flex-col items-center">
-                    {/* <StateRect 
-                      ref={leftInputRef}
-                      color='blue'
-                      state={displayInput} 
-                      onClick={() => showDialogWithContent({ title: 'Input', values: { input: displayInput } })}
-                    />
-                    <Arrow direction="down" /> */}
-                    <Node
-                      ref={rhoNodeRef}
-                      label="ρ"
-                      onClick={handlePClick}
-                      highlight={highlightButton === 'p'}
-                    />
-                    {/* <Arrow direction="down" /> */}
-                    {/* {state.showInitialState ? (
-                      <StateRect 
-                        ref={initialStateNodeRef}
-                        color='green'
-                        state={formatState(state.initialState)} 
-                        onClick={() => showDialogWithContent({ 
-                          title: 'Initial State', 
-                          values: { 
-                            inputs: formatState(inputs.filter(Boolean)),
-                            state: formatState(state.initialState)
-                          } 
-                        })}
-                      />
-                    ) : (
-                      <StateRect state="?" showSymbol={true}/>
-                    )} */}
-                  </div>
-                </div>
-
-                <div className="absolute right-30 top-40">
-                  <div className="flex flex-col items-center">
-                    {/* <StateRect 
-                      showSymbol={state.step !== 4}
-                      state={state.showFinalResult ? formatState(state.result) : '?'} 
-                      onClick={state.showFinalResult ? () => showDialogWithContent({ title: 'Result', values: { result: formatState(state.result) } }) : null}
-                    />
-                    <Arrow direction="up" /> */}
-                    <Node
-                      ref={piNodeRef}
-                      label="π"
-                      onClick={handlePiClick}
-                      highlight={highlightButton === 'pi'}
-                    />
-                    {/* <Arrow direction="up" /> */}
-                    {/* {state.step >= 3.5 ? (
-                      <StateRect 
-                        ref={finalStateNodeRef}
-                        color='red'
-                        state={formatState(state.fNodes[state.fNodes.length - 1])} 
-                        onClick={() => {
-                          const lastNode = state.fNodes[state.fNodes.length - 1];
-                          showDialogWithContent({ 
-                            title: 'Final Node State', 
-                            values: { 
-                              state: formatState(lastNode)
-                            } 
-                          });
-                        }
-                      }
-                      />
-                    ) : (
-                      <StateRect state="?" showSymbol={true}/>
-                    )} */}
-                  </div>
-                </div>
-                
-                {/* Existing diagonal arrows */}
-                {topInputRef.current && rhoNodeRef.current && (
-                  <Arrow 
-                    direction="custom" 
-                    startX={arrowCoords.input_to_rho.startX}
-                    startY={arrowCoords.input_to_rho.startY}
-                    endX={arrowCoords.input_to_rho.endX}
-                    endY={arrowCoords.input_to_rho.endY}
-                    style={{ zIndex: 10 }}
-                  />
-                )}
-                
-                {state.step>=4 && piNodeRef.current && rightResultRef.current && (
-                  <Arrow 
-                    direction="custom" 
-                    startX={arrowCoords.pi_to_result.startX}
-                    startY={arrowCoords.pi_to_result.startY}
-                    endX={arrowCoords.pi_to_result.endX}
-                    endY={arrowCoords.pi_to_result.endY}
-                    style={{ zIndex: 10 }}
-                  />
-                )}
-
-                {/* New arrow from initial state (ρ result) to first F chain node */}
-                {state.step >= 2 && rhoNodeRef.current && (firstFChainNodeRef.current || tNodeRef.current) && (
-                  <Arrow 
-                    direction="custom" 
-                    startX={arrowCoords.rho_to_fchain.startX}
-                    startY={arrowCoords.rho_to_fchain.startY}
-                    endX={arrowCoords.rho_to_fchain.endX-140}
-                    endY={arrowCoords.rho_to_fchain.endY-80}
-                    style={{ zIndex: 10 }}
-                  />
-                )}
-
-                {/* New arrow from last F chain node to π node */}
-                {state.step >= 3.5 && lastFChainNodeRef.current && piNodeRef.current && (
-                  <Arrow 
-                    direction="custom" 
-                    startX={arrowCoords.fchain_to_pi.startX-60}
-                    startY={arrowCoords.fchain_to_pi.startY+10}
-                    endX={arrowCoords.fchain_to_pi.endX-15}
-                    endY={arrowCoords.fchain_to_pi.endY+5}
-                    style={{ zIndex: 10 }}
-                  />
-                )}
-
-                {(state.step >= 2 || state.showT) && (
-                  <div className="flex justify-center items-center mt-100 relative">
-                    <div className="flex items-center overflow-x-auto" style={{ scrollbarWidth: 'thin', msOverflowStyle: 'none' }} id="nodeContainer">
-                      <div className="flex items-center">
-                        {state.step >= 2 && (
-                          <>
-                            <StateRect 
-                              color='green'
-                              state={formatState(state.initialState)} 
-                              onClick={() => showDialogWithContent({ 
-                                title: 'Initial State', 
-                                values: { 
-                                  inputs: formatState(inputs.filter(Boolean)),
-                                  state: formatState(state.initialState)
-                                } 
-                              })}
-                            />
-                            <Arrow direction="right" />
-                          </>
-                        )}
-                        <div className="flex items-center space-x-0 min-w-max">
-                          {state.fNodes.map((stateNode, index) => (
-                            <React.Fragment key={index}>
-                              <Node
-                                ref={index === 0 ? firstFChainNodeRef : null}
-                                label="F"
-                              />
-                              <Arrow direction="right" />
-                              <StateRect 
-                                ref={index === state.fNodes.length - 1 ? lastFChainNodeRef : null}
-                                color='yellow'
-                                state={formatState(stateNode)} 
-                                onClick={() => {
-                                  showDialogWithContent({ 
-                                    title: `Node State ${index + 1}`, 
-                                    values: { 
-                                      state: formatState(stateNode)
-                                    } 
-                                  });
-                                }}
-                              />
-                              {index < state.fNodes.length - 1 || state.showT  ? (
-                                <Arrow direction="right" />
-                              ) : null}
-                            </React.Fragment>
-                          ))}
-                        </div>
-                        <div className="flex items-center space-x-0 min-w-max">
-                          {state.showT && (
-                            <>
-                              <Node
-                                ref={state.fNodes.length === 0 ? tNodeRef : null}
-                                label="T"
-                                onClick={handleTClick}
-                                highlight={highlightButton === 't'}
-                              />
-                              <Arrow direction="right" />
-                              {state.step < 3.5 ? (
-                                <StateRect state="?" showSymbol={true}/>
-                              ) : (
-                                <StateRect 
-                                  ref={finalStateNodeRef}
-                                  state={formatState(state.fNodes[state.fNodes.length - 1])} 
-                                  onClick={() => {
-                                    const lastNode = state.fNodes[state.fNodes.length - 1];
-                                    showDialogWithContent({ 
-                                      title: 'Final Node State', 
-                                      values: { 
-                                        state: formatState(lastNode)
-                                      } 
-                                    });
-                                  }}
-                                />
-                              )}
-                            </>
-                          )}
-                        </div>
-                        {/* <div className="flex items-center space-x-0 min-w-max">
-                          {shouldShowIdentityNode && !state.showT && (
-                            <>
-                              <Node
-                                label="T"
-                                onClick={handleIClick}
-                                highlight={false}
-                              /> 
-                              <Arrow direction="right" />
-                              <StateRect 
-                                color='red'
-                                state={formatState(state.fNodes[state.fNodes.length - 1])} 
-                                onClick={() => {
-                                  const lastNode = state.fNodes[state.fNodes.length - 1];
-                                  showDialogWithContent({ 
-                                    title: 'Final Node State', 
-                                    values: { 
-                                      state: formatState(lastNode)
-                                    } 
-                                  });
-                                }}
-                              />
-                            </>
-                          )}
-                        </div> */}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {showDialog && dialogContent && (
-                  <div className="absolute left-0 right-0 mt-15 flex justify-center">
-                    <div className="bg-white p-4 rounded-lg shadow-lg border-2 border-gray-400">
-                      <div className="flex justify-between items-center mb-2">
-                        <h3 className="text-lg font-semibold">{dialogContent.title || 'Information'}</h3>
-                        <button
-                          className="cursor-pointer"
-                          onClick={() => {
-                            console.log('Closing dialog');
-                            setShowDialog(false);
-                            setDialogContent(null);
-                          }}
-                        >
-                          X
-                        </button>
-                      </div>
-                      {dialogContent.values && Object.entries(dialogContent.values).map(([key, value]) => (
-                        <p key={key} className="text-lg">{key}: {value}</p>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="text-center mt-40 p-4 bg-gray-100 rounded">
+        <div className="text-center mt-8 p-4 bg-gray-100 rounded">
           {endOfAlgo
             ? 'End of Algorithm'
             : state.computationText ||
               (!inputs.some(Boolean)
                 ? 'Enter values to start'
                 : inputs.some(Boolean) && state.step === 0
-                ? "Click 'f' to start the computation visualization"
+                ? "Click the 'f' edge to start the computation visualization"
                 : state.step === 1
-                ? "Click 'ρ' to initialize the state"
+                ? "Click the 'ρ' edge to initialize the state"
                 : state.step === 2
-                ? "Click 'T' to begin state transitions"
+                ? "Click the 'T' edge to begin state transitions"
                 : state.step === 3.5
-                ? "Click 'π' to extract the final result"
+                ? "Click the 'π' edge to extract the final result"
                 : state.step === 4
                 ? `Result: ${formatState(state.result)}`
                 : '')}
         </div>
       </div>
-     </div>
+    </div>
   );
 };
 

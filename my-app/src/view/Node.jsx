@@ -1,29 +1,90 @@
 import React, { forwardRef } from 'react';
-import { useState } from 'react';
 
-export const Node = forwardRef(({ label, onClick, className = '', highlight = false }, ref) => (
+export const Edge = forwardRef(({ label, onClick, className = '', highlight = false }, ref) => (
   <div
     ref={ref}
     onClick={onClick}
-    className={`h-12 w-12 rounded-full border-2 ${
-      highlight ? 'border-green-500 ring-4 ring-green-300' : 'border-gray-400'
-    } flex items-center justify-center cursor-pointer hover:bg-gray-100 ${className}`}
+    className={`relative h-0.5 bg-gray-400 mx-4 group ${className}`}
+    style={{ minWidth: '50px' }}
   >
-    {label}
+    {/* Clickable overlay on the edge with the label */}
+    <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
+                     h-8 w-8 rounded-full bg-white border-2 
+                     ${highlight ? 'border-green-500 ring-4 ring-green-300' : 'border-gray-400'} 
+                     flex items-center justify-center cursor-pointer hover:bg-gray-100 z-10`}>
+      {label}
+    </div>
+    
+    {/* Arrowhead */}
+    <div className="absolute right-0 top-1/2 -translate-y-1/2">
+      <div className="w-0 h-0 border-t-4 border-t-transparent border-b-4 border-b-transparent border-l-4 border-l-gray-400"></div>
+    </div>
   </div>
 ));
 
-export const StateNode = forwardRef(({ state }, ref) => {
-  const displayState = Array.isArray(state)
-    ? `[${state.join(',')}]`
-    : state?.toString() || '';
-
+export const DiagonalEdge = forwardRef(({ label, onClick, startX, startY, endX, endY, highlight = false, style }, ref) => {
+  // Calculate the absolute width and height of the SVG
+  const width = Math.abs(endX - startX) + 20; // Add padding
+  const height = Math.abs(endY - startY) + 20; // Add padding
+  
+  // Determine the position of the SVG
+  const left = Math.min(startX, endX) - 10; // Subtract padding/2
+  const top = Math.min(startY, endY) - 10; // Subtract padding/2
+  
+  // Calculate the position of the line within the SVG
+  const x1 = startX < endX ? 10 : width - 10;
+  const y1 = startY < endY ? 10 : height - 10;
+  const x2 = startX < endX ? width - 10 : 10;
+  const y2 = startY < endY ? height - 10 : 10;
+  
+  // Calculate the midpoint of the line for placing the button
+  const midX = (x1 + x2) / 2;
+  const midY = (y1 + y2) / 2;
+  
   return (
-    <div 
-      ref={ref}
-      className="h-12 rounded-full border-2 border-gray-400 flex items-center justify-center px-2"
-    >
-      {displayState}
+    <div style={{ position: 'absolute', left, top, ...style }}>
+      <svg
+        width={width}
+        height={height}
+        style={{ position: 'absolute' }}
+      >
+        <line
+          x1={x1}
+          y1={y1}
+          x2={x2}
+          y2={y2}
+          stroke="gray"
+          strokeWidth="2"
+          markerEnd="url(#arrowhead)"
+        />
+        <defs>
+          <marker
+            id="arrowhead"
+            markerWidth="10"
+            markerHeight="7"
+            refX="10"
+            refY="3.5"
+            orient="auto"
+          >
+            <polygon points="0 0, 10 3.5, 0 7" fill="gray" />
+          </marker>
+        </defs>
+      </svg>
+      
+      {/* Clickable overlay with label */}
+      <div 
+        ref={ref}
+        onClick={onClick}
+        className={`absolute rounded-full bg-white border-2 
+                   ${highlight ? 'border-green-500 ring-4 ring-green-300' : 'border-gray-400'} 
+                   h-8 w-8 flex items-center justify-center cursor-pointer hover:bg-gray-100 z-10`}
+        style={{ 
+          left: midX - 16, 
+          top: midY - 16
+        }}
+      >
+        {label}
+      </div>
     </div>
   );
 });
@@ -47,87 +108,3 @@ export const StateRect = forwardRef(({ state, onClick, color = 'gray', showSymbo
     </button>
   );
 });
-
-
-
-
-export const Arrow = ({ direction = 'right', startX = 0, startY = 0, endX = 0, endY = 0, style }) => {
-  const isVertical = direction === 'up' || direction === 'down';
-
-  if (direction === 'custom') {
-    // Calculate the length of the line for positioning the arrowhead
-    const length = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
-    const angle = Math.atan2(endY - startY, endX - startX) * (180 / Math.PI);
-
-    return (
-      <svg
-        style={{
-          position: 'absolute',
-          left: Math.min(startX, endX),
-          top: Math.min(startY, endY),
-          width: Math.abs(endX - startX),
-          height: Math.abs(endY - startY),
-          ...style,
-        }}
-      >
-        <line
-          x1={startX < endX ? 0 : Math.abs(endX - startX)}
-          y1={startY < endY ? 0 : Math.abs(endY - startY)}
-          x2={startX < endX ? Math.abs(endX - startX) : 0}
-          y2={startY < endY ? Math.abs(endY - startY) : 0}
-          stroke="gray"
-          strokeWidth="2"
-          markerEnd="url(#arrowhead)"
-        />
-        <defs>
-          <marker
-            id="arrowhead"
-            markerWidth="10"
-            markerHeight="7"
-            refX="10"
-            refY="3.5"
-            orient="auto"
-          >
-            <polygon points="0 0, 10 3.5, 0 7" fill="gray" />
-          </marker>
-        </defs>
-      </svg>
-    );
-  }
-
-  // Existing rendering for horizontal and vertical arrows
-  return (
-    <div
-      className={
-        isVertical
-          ? 'h-8 w-0.5 bg-gray-400 my-2 relative'
-          : 'w-8 h-0.5 bg-gray-400 mx-2 relative'
-      }
-    >
-      {/* Arrowhead */}
-      <div
-        className={`absolute ${
-          isVertical
-            ? direction === 'down'
-              ? 'bottom-0 left-1/2 -translate-x-1/2'
-              : 'top-0 left-1/2 -translate-x-1/2'
-            : direction === 'right'
-            ? 'right-0 top-1/2 -translate-y-1/2'
-            : 'left-0 top-1/2 -translate-y-1/2'
-        }`}
-      >
-        <div
-          className={`w-0 h-0 ${
-            direction === 'right'
-              ? 'w-0 h-0 border-t-4 border-t-transparent border-b-4 border-b-transparent border-l-4 border-l-gray-390'
-              : direction === 'left'
-              ? 'border-t-4 border-t-transparent border-b-4 border-b-transparent border-r-4 border-r-gray-390'
-              : direction === 'down'
-              ? 'border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-gray-390'
-              : 'border-l-4 border-l-transparent border-r-4 border-r-transparent border-b-4 border-b-gray-390'
-          }`}
-        ></div>
-      </div>
-    </div>
-  );
-};
